@@ -73,7 +73,7 @@ export class AIOrchestrator {
           systemPrompt: promptDef.systemPrompt,
           prompt: currentPrompt,
           temperature: options.temperature ?? 0.65,
-          timeoutMs: options.timeoutMs ?? 90_000,
+          timeoutMs: options.timeoutMs ?? 240_000,
         });
 
         totalInputTokens += res.usage.inputTokens;

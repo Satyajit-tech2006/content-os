@@ -39,9 +39,9 @@ export const DEFAULT_LOCAL_MODELS: ModelConfig[] = [
 export const DEFAULT_TASK_ROUTES: Record<AITaskType, { provider: ProviderName; model: string }> = {
   classification: { provider: "ollama", model: "llama3.2:3b" },
   summarization: { provider: "ollama", model: "llama3.2:3b" },
-  content_ideas: { provider: "ollama", model: "qwen3:4b" },
-  script_generation: { provider: "ollama", model: "qwen3:4b" },
-  content_rewriting: { provider: "ollama", model: "qwen3:4b" },
+  content_ideas: { provider: "ollama", model: "llama3.2:3b" },
+  script_generation: { provider: "ollama", model: "llama3.2:3b" },
+  content_rewriting: { provider: "ollama", model: "llama3.2:3b" },
   basic_coding: { provider: "ollama", model: "qwen2.5-coder:3b" },
 };
 

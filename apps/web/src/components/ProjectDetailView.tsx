@@ -200,7 +200,7 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
             <div className="rounded-xl border border-zinc-800 bg-[#111114] p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2"><Film className="h-4 w-4 text-emerald-400" /><h3 className="text-xs font-semibold text-zinc-100">Generated Output Preview</h3></div>
-                <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-400">v0.1 Simulated</span>
+                <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-400">Ollama Local AI</span>
               </div>
               {activeExecution?.outputSummary ? (
                 <pre className="h-52 overflow-y-auto rounded-lg bg-zinc-950 border border-zinc-800/80 p-3 font-mono text-[11px] text-emerald-300/90">{JSON.stringify(activeExecution.outputSummary, null, 2)}</pre>

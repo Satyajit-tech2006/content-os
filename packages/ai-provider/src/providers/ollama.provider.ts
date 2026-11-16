@@ -53,8 +53,8 @@ export class OllamaProvider implements AIProvider {
 
   constructor(config: OllamaProviderConfig = {}) {
     this.baseUrl = (config.baseUrl || "http://localhost:11434").replace(/\/+$/, "");
-    this.defaultModel = config.defaultModel || "qwen3:4b";
-    this.defaultTimeoutMs = config.timeoutMs ?? 90_000;
+    this.defaultModel = config.defaultModel || "llama3.2:3b";
+    this.defaultTimeoutMs = config.timeoutMs ?? 240_000;
   }
 
   supports(capability: AICapability): boolean {
@@ -150,7 +150,9 @@ export class OllamaProvider implements AIProvider {
       messages,
       stream: false,
       think: false,
+      keep_alive: "10m",
       options: {
+        num_ctx: 4096,
         temperature: options.temperature ?? 0.6,
         ...(options.maxOutputTokens ? { num_predict: options.maxOutputTokens } : {}),
       },
