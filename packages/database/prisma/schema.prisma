@@ -1,0 +1,333 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum StageStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+enum AssetType {
+  RAW_FOOTAGE
+  AUDIO
+  IMAGE
+  RENDERED_VIDEO
+  SUBTITLE
+}
+
+enum AssetStatus {
+  UPLOADING
+  READY
+  PROCESSING
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions        Session[]
+  ownedWorkspaces Workspace[]       @relation("WorkspaceOwner")
+  memberships     WorkspaceMember[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner               User                       @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members             WorkspaceMember[]
+  projects            Project[]
+  workflowTemplates   WorkflowTemplate[]
+  workflowExecutions  WorkflowExecution[]
+  stageExecutions     WorkflowStageExecution[]
+  outboxEvents        OutboxEvent[]
+  contentAssets       ContentAsset[]
+  platformConnections PlatformConnection[]
+  publishingRecords   PublishingRecord[]
+  usageRecords        UsageRecord[]
+
+  @@index([ownerId])
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(EDITOR)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+model WorkflowTemplate {
+  id          String   @id @default(cuid())
+  workspaceId String?
+  name        String
+  description String   @default("")
+  version     Int      @default(1)
+  isSystem    Boolean  @default(false)
+  stages      Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace  Workspace?          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projects   Project[]
+  executions WorkflowExecution[]
+
+  @@index([workspaceId])
+  @@index([isSystem])
+}
+
+model Project {
+  id                 String        @id @default(cuid())
+  workspaceId        String
+  workflowTemplateId String
+  name               String
+  description        String        @default("")
+  niche              String
+  targetAudience     String
+  contentFormat      String        @default("short_video")
+  platforms          String[]
+  postingFrequency   Int           @default(3)
+  status             ProjectStatus @default(ACTIVE)
+  approvalRequired   Boolean       @default(true)
+  automationEnabled  Boolean       @default(false)
+  config             Json          @default("{}")
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  workspace           Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflowTemplate    WorkflowTemplate     @relation(fields: [workflowTemplateId], references: [id], onDelete: Restrict)
+  executions          WorkflowExecution[]
+  contentAssets       ContentAsset[]
+  platformConnections PlatformConnection[]
+  publishingRecords   PublishingRecord[]
+  usageRecords        UsageRecord[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, createdAt])
+}
+
+model WorkflowExecution {
+  id                 String          @id @default(cuid())
+  workspaceId        String
+  projectId          String
+  workflowTemplateId String
+  status             ExecutionStatus @default(PENDING)
+  currentStageIndex  Int             @default(0)
+  inputContext       Json            @default("{}")
+  outputSummary      Json?
+  errorMessage       String?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  workspace        Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workflowTemplate WorkflowTemplate         @relation(fields: [workflowTemplateId], references: [id], onDelete: Restrict)
+  stages           WorkflowStageExecution[]
+  assets           ContentAsset[]
+  usageRecords     UsageRecord[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, projectId, createdAt])
+}
+
+model WorkflowStageExecution {
+  id           String      @id @default(cuid())
+  executionId  String
+  workspaceId  String
+  stageKey     String
+  stageName    String
+  stageOrder   Int
+  status       StageStatus @default(PENDING)
+  attemptCount Int         @default(0)
+  input        Json        @default("{}")
+  output       Json?
+  logs         Json        @default("[]")
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([executionId, stageOrder])
+  @@index([workspaceId, executionId])
+  @@index([status])
+}
+
+model OutboxEvent {
+  id          String       @id @default(cuid())
+  workspaceId String
+  eventType   String
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  lastError   String?
+  createdAt   DateTime     @default(now())
+  processedAt DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([workspaceId])
+}
+
+model ContentAsset {
+  id          String      @id @default(cuid())
+  workspaceId String
+  projectId   String
+  executionId String?
+  type        AssetType
+  fileName    String
+  mimeType    String
+  fileSize    BigInt
+  storageKey  String      @unique
+  status      AssetStatus @default(READY)
+  metadata    Json        @default("{}")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  execution         WorkflowExecution? @relation(fields: [executionId], references: [id], onDelete: SetNull)
+  publishingRecords PublishingRecord[]
+
+  @@index([workspaceId, projectId])
+}
+
+model PlatformConnection {
+  id                   String    @id @default(cuid())
+  workspaceId          String
+  projectId            String?
+  platform             String
+  accountName          String
+  externalAccountId    String
+  encryptedCredentials String
+  status               String    @default("CONNECTED")
+  expiresAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project           Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  publishingRecords PublishingRecord[]
+
+  @@index([workspaceId])
+}
+
+model PublishingRecord {
+  id                   String    @id @default(cuid())
+  workspaceId          String
+  projectId            String
+  assetId              String
+  platformConnectionId String
+  idempotencyKey       String    @unique
+  status               String    @default("PENDING")
+  externalPostId       String?
+  errorMessage         String?
+  scheduledFor         DateTime?
+  publishedAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  workspace          Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  asset              ContentAsset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  platformConnection PlatformConnection @relation(fields: [platformConnectionId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, projectId])
+}
+
+model UsageRecord {
+  id               String   @id @default(cuid())
+  workspaceId      String
+  projectId        String?
+  executionId      String?
+  provider         String
+  model            String
+  stageKey         String?
+  inputTokens      Int      @default(0)
+  outputTokens     Int      @default(0)
+  estimatedCostUsd Decimal  @default(0) @db.Decimal(10, 6)
+    taskType         String?
+  durationMs       Int?
+  success          Boolean  @default(true)
+  errorMessage     String?
+  costMetadata     Json     @default("{}")
+  createdAt        DateTime @default(now())
+
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  execution WorkflowExecution? @relation(fields: [executionId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+}

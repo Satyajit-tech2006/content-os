@@ -1,0 +1,19 @@
+{
+  "name": "contentos",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @contentos/database db:generate",
+    "db:migrate": "pnpm --filter @contentos/database db:migrate",
+    "db:push": "pnpm --filter @contentos/database db:push",
+    "db:seed": "pnpm --filter @contentos/database db:seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.2"
+  }
+}

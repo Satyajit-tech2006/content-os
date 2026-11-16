@@ -1,0 +1,13 @@
+node_modules/
+.pnpm-store/
+.env
+.env.local
+.env.*.local
+dist/
+.next/
+out/
+build/
+.turbo/
+*.log
+.DS_Store
+Thumbs.db
