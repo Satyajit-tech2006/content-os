@@ -1,0 +1,19 @@
+{
+  "title": "What Makes a Cute Couple and How to Bring More Joy to Your Relationship",
+  "media": {
+    "mimeType": "video/mp4",
+    "renderMode": "manifest_v1",
+    "resolution": "1080x1920",
+    "storageKey": "workspaces/ws_default_studio/executions/cmwjm8zor0001logws6axdt1u/master.mp4",
+    "durationSec": 45
+  },
+  "quality": {
+    "score": 96,
+    "checks": {
+      "hookStrength": true,
+      "schemaValidated": true,
+      "scriptCompleteness": true
+    },
+    "passed": true
+  }
+}

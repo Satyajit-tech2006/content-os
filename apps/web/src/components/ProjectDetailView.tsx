@@ -202,26 +202,18 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
                 <div className="flex items-center gap-2"><Film className="h-4 w-4 text-emerald-400" /><h3 className="text-xs font-semibold text-zinc-100">Generated Output Preview</h3></div>
                 <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-400">Ollama Local AI</span>
               </div>
-              {activeExecution?.outputSummary ? (
-                <pre className="h-52 overflow-y-auto rounded-lg bg-zinc-950 border border-zinc-800/80 p-3 font-mono text-[11px] text-emerald-300/90">{JSON.stringify(activeExecution.outputSummary, null, 2)}</pre>
-              ) : (
-                <div className="h-52 flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 p-4 text-center">
-                  <AlertTriangle className="h-5 w-5 text-zinc-600 mb-2" />
-                  <p className="text-xs text-zinc-400">Real Gemini scripts & FFmpeg video renders unlock in Milestones 2 & 3.</p>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="rounded-xl border border-zinc-800 bg-[#111114] p-5">
-            <h3 className="text-xs font-semibold text-zinc-100 mb-3">Recent Execution History</h3>
-            <div className="divide-y divide-zinc-800/80">
-              {(project.executions ?? []).map((exec) => (
-                <button key={exec.id} onClick={() => setSelectedExecId(exec.id)} className={"w-full flex items-center justify-between py-2.5 px-2 text-left text-xs hover:bg-zinc-900/60 rounded transition " + (exec.id === activeExecution?.id ? "bg-zinc-900" : "")}>
-                  <div><span className="font-mono text-zinc-300">{exec.id.slice(0, 12)}...</span><span className="ml-3 text-zinc-500">{new Date(exec.createdAt).toLocaleString()}</span></div>
-                  <StatusBadge status={exec.status} />
-                </button>
-              ))}
-              {(!project.executions || project.executions.length === 0) && <p className="py-4 text-xs text-zinc-500">No executions recorded yet.</p>}
+              {activeExecution?.outputSummary &&
+                Object.keys(activeExecution.outputSummary).length > 0 ? (
+                  <pre className="h-52 overflow-y-auto rounded-lg bg-zinc-950 border border-zinc-800/80 p-3 font-mono text-[11px] text-emerald-300/90 whitespace-pre-wrap">
+                    {JSON.stringify(activeExecution.outputSummary, null, 2)}
+                  </pre>
+                ) : (
+                  <div className="h-52 flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 p-4 text-center">
+                    <p className="text-xs text-zinc-400">
+                      Trigger a production pipeline run to view live Ollama-generated briefs and scripts here.
+                    </p>
+                  </div>
+                )}
             </div>
           </div>
         </div>
