@@ -84,7 +84,10 @@ router.get(
           include: {
             project: { select: { id: true, name: true, niche: true } },
             workflowTemplate: { select: { id: true, name: true } },
-            stages: { orderBy: { stageOrder: "asc" } },
+            stages: {
+              select: { id: true, stageKey: true, stageName: true, stageOrder: true, status: true },
+              orderBy: { stageOrder: "asc" },
+            },
           },
           orderBy: { createdAt: "desc" },
           take: 10,

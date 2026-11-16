@@ -65,8 +65,11 @@ export class ScriptGenerationStageHandler implements WorkflowStageHandler {
     const topic = typeof ctx.inputContext.topic === "string" && ctx.inputContext.topic.trim()
       ? ctx.inputContext.topic.trim()
       : brief?.topic ?? ctx.project.niche;
+    const reviewerFeedback = typeof ctx.inputContext.reviewerFeedback === "string" && ctx.inputContext.reviewerFeedback.trim()
+      ? ctx.inputContext.reviewerFeedback.trim()
+      : undefined;
 
-    ctx.log("info", "Generating Zod-validated " + desiredDuration + "s script for " + contentPlatform + " (" + language + ")");
+    ctx.log("info", (reviewerFeedback ? "Regenerating revised " : "Generating Zod-validated ") + desiredDuration + "s script for " + contentPlatform + " (" + language + ")");
 
     const res = await ctx.orchestrator.runStructured<ValidatedScriptOutput>({
       promptId: "short-form-script-generator",
@@ -79,6 +82,7 @@ export class ScriptGenerationStageHandler implements WorkflowStageHandler {
         tone,
         language,
         editorialBrief: brief,
+        ...(reviewerFeedback ? { reviewerFeedback, revisionInstructions: reviewerFeedback } : {}),
       },
       temperature: 0.7,
     });
@@ -94,6 +98,10 @@ export class ScriptGenerationStageHandler implements WorkflowStageHandler {
           ...res.data,
           voiceoverScript: res.data.script,
           caption: res.data.description,
+        },
+        generationMeta: {
+          provider: res.usage.provider,
+          model: res.usage.model,
         },
       },
       usage: [{
@@ -202,15 +210,21 @@ export class PublishingPreparationStageHandler implements WorkflowStageHandler {
   readonly key = "publishing" as const;
   async execute(ctx: StageExecutionContext): Promise<StageExecutionResult> {
     checkSimulatedFailure(ctx);
-    const script = ctx.previousOutputs.script as ValidatedScriptOutput | undefined;
-    ctx.log("info", "Assembling platform metadata packages for: " + ctx.project.platforms.join(", "));
+    const approved = (ctx.inputContext.approvedRevision as Record<string, unknown> | undefined)
+      ?? (ctx.previousOutputs.script as Record<string, unknown> | undefined);
+    const revisionId = typeof approved?.id === "string" ? approved.id : null;
+    const revisionNumber = typeof approved?.revisionNumber === "number" ? approved.revisionNumber : 1;
+    ctx.log("info", "Assembling revision-pinned publishing package (rev #" + revisionNumber + ") for: " + ctx.project.platforms.join(", "));
     return {
       output: {
         publishingPackage: {
+          approvedRevisionId: revisionId,
+          approvedRevisionNumber: revisionNumber,
           targetPlatforms: ctx.project.platforms,
-          title: script?.title ?? ctx.project.name + " Episode",
-          description: script?.description ?? "",
-          hashtags: script?.hashtags ?? [],
+          title: (typeof approved?.title === "string" && approved.title) || ctx.project.name + " Episode",
+          voiceoverScript: (typeof approved?.voiceoverScript === "string" && approved.voiceoverScript) || (typeof approved?.script === "string" ? approved.script : ""),
+          description: typeof approved?.description === "string" ? approved.description : "",
+          hashtags: Array.isArray(approved?.hashtags) ? approved.hashtags : [],
           readyForDispatch: true,
         },
       },

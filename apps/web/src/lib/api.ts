@@ -25,14 +25,16 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 export interface WorkspaceDTO { id: string; name: string; slug: string; role: string; }
 export interface StageExecutionDTO {
   id: string; stageKey: string; stageName: string; stageOrder: number;
-  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "SKIPPED";
+  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "SKIPPED" | "AWAITING_APPROVAL" | "REJECTED";
   attemptCount: number; output: Record<string, unknown> | null;
   logs: Array<{ timestamp: string; level: string; message: string }>;
   errorMessage: string | null; startedAt: string | null; completedAt: string | null;
 }
 export interface WorkflowExecutionDTO {
   id: string; projectId: string;
-  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED" | "AWAITING_APPROVAL" | "REJECTED";
+  activeRevisionNum?: number;
+  approvedRevisionId?: string | null;
   currentStageIndex: number; inputContext: Record<string, unknown>;
   outputSummary: Record<string, unknown> | null; errorMessage: string | null;
   startedAt: string | null; completedAt: string | null; createdAt: string;
@@ -51,4 +53,31 @@ export interface ProjectDTO {
 export interface WorkflowTemplateDTO {
   id: string; name: string; description: string; version: number; isSystem: boolean;
   stages: Array<{ key: string; name: string; order: number; description?: string }>;
+}
+
+export interface ContentRevisionDTO {
+  id: string;
+  assetId: string;
+  revisionNumber: number;
+  source: "AI_GENERATED" | "AI_REVISION" | "MANUAL_EDIT";
+  title: string;
+  hook: string | null;
+  voiceoverScript: string;
+  description: string | null;
+  hashtags: string[];
+  reviewerFeedback: string | null;
+  stageKey: string | null;
+  provider: string | null;
+  model: string | null;
+  createdAt: string;
+  createdByUser?: { id: string; name: string; email: string } | null;
+}
+
+export interface ApprovalDecisionDTO {
+  id: string;
+  decision: "APPROVED" | "REJECTED" | "REVISION_REQUESTED";
+  comment: string | null;
+  createdAt: string;
+  reviewer?: { id: string; name: string; email: string };
+  revision?: { id: string; revisionNumber: number };
 }

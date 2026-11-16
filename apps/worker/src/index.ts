@@ -20,7 +20,7 @@ const workflowQueue = new Queue(WORKFLOW_QUEUE_NAME, {
 const worker = new Worker<StageJobPayload>(
   WORKFLOW_QUEUE_NAME,
   async (job) => {
-    logger.info({ jobId: job.id, data: job.data }, "Processing workflow stage job");
+    logger.info({ jobId: String(job.id).replace(/:/g, "_"), data: job.data }, "Processing workflow stage job");
     await processWorkflowStageJob(job.data, workflowQueue, logger);
   },
   {
@@ -30,12 +30,15 @@ const worker = new Worker<StageJobPayload>(
 );
 
 worker.on("failed", (job, err) => {
-  logger.error({ jobId: job?.id, err: err.message }, "Worker job failed");
+  logger.error({ jobId: String(job?.id).replace(/:/g, "_"), err: err.message }, "Worker job failed");
 });
 
 async function flushOutbox(): Promise<void> {
   const pendingEvents = await prisma.outboxEvent.findMany({
-    where: { status: "PENDING" },
+    where: {
+      status: "PENDING",
+      nextRetryAt: { lte: new Date() },
+    },
     orderBy: { createdAt: "asc" },
     take: 25,
   });
@@ -43,21 +46,28 @@ async function flushOutbox(): Promise<void> {
   for (const event of pendingEvents) {
     try {
       const payload = event.payload as unknown as StageJobPayload;
-      await workflowQueue.add("execute-stage", payload, {
-        jobId: payload.executionId + ":stage:" + payload.stageOrder,
+      const jobId =
+        payload.jobId ??
+        event.idempotencyKey ??
+        `${payload.executionId}_stage_${payload.stageOrder}_rev_${payload.revisionNum ?? 1}`;
+      await workflowQueue.add("execute-stage", { ...payload, jobId }, {
+        jobId,
         attempts: 3,
         backoff: { type: "exponential", delay: 2000 },
       });
       await prisma.outboxEvent.update({
         where: { id: event.id },
-        data: { status: "PROCESSED", processedAt: new Date() },
+        data: { status: "PROCESSED", processedAt: new Date(), lastError: null },
       });
     } catch (err) {
+      const nextAttempt = event.attempts + 1;
+      const backoffMs = Math.min(60_000, 2000 * Math.pow(2, nextAttempt));
       await prisma.outboxEvent.update({
         where: { id: event.id },
         data: {
           attempts: { increment: 1 },
           lastError: err instanceof Error ? err.message : "Outbox dispatch failed",
+          nextRetryAt: new Date(Date.now() + backoffMs),
         },
       });
     }
@@ -68,6 +78,7 @@ const outboxTimer = setInterval(() => {
   flushOutbox().catch((err) => logger.error({ err }, "Outbox poll error"));
 }, 5000);
 
+flushOutbox().catch((err) => logger.error({ err }, "Initial outbox flush error"));
 logger.info("ContentOS Worker & Outbox Dispatcher started");
 
 process.on("SIGINT", async () => {

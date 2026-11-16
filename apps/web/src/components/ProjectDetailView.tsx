@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import { ArrowLeft, Play, Settings, Pause, Trash2, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle, Film, Terminal } from "lucide-react";
+import { ArrowLeft, Play, Settings, Pause, Trash2, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle, Film, Terminal, RotateCcw, ShieldAlert } from "lucide-react";
 import { apiFetch, type ProjectDTO, type WorkflowExecutionDTO } from "@/lib/api";
 import { StatusBadge } from "./StatusBadge";
 
@@ -71,6 +71,18 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
       body: JSON.stringify({ status: nextStatus }),
     });
     await loadProject();
+  }
+
+  async function handleRetryExecution(executionId: string) {
+    setError(null);
+    try {
+      await apiFetch("/workspaces/" + workspaceId + "/executions/" + executionId + "/retry", {
+        method: "POST",
+      });
+      await loadProject();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to retry execution");
+    }
   }
 
   async function handleDelete() {
@@ -157,8 +169,31 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
                 <h2 className="text-sm font-semibold text-zinc-100">Stage Pipeline Progression</h2>
                 <p className="text-xs text-zinc-500">{activeExecution ? "Execution " + activeExecution.id.slice(0, 10) + "..." : "No executions yet ? run the pipeline to watch BullMQ stages progress"}</p>
               </div>
-              {activeExecution && <StatusBadge status={activeExecution.status} />}
+              {activeExecution && (
+                <div className="flex items-center gap-2">
+                  {activeExecution.status === "FAILED" && (
+                    <button
+                      onClick={() => handleRetryExecution(activeExecution.id)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-300 hover:bg-amber-500/25"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Retry Failed Stage
+                    </button>
+                  )}
+                  <StatusBadge status={activeExecution.status} />
+                </div>
+              )}
             </div>
+            {activeExecution?.status === "AWAITING_APPROVAL" && (
+              <div className="mb-3 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Paused at Human Approval Gate</p>
+                  <p className="text-[11px] text-amber-300/90 mt-0.5">
+                    Open <strong>Content Library</strong> in the left sidebar to review, edit, request revisions, or approve this script before publishing proceeds.
+                  </p>
+                </div>
+              </div>
+            )}
             {activeExecution ? (
               <div className="space-y-2.5">
                 {activeExecution.stages.map((stage) => (
@@ -166,7 +201,8 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
                     <div className="flex items-center gap-3">
                       {stage.status === "COMPLETED" && <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />}
                       {stage.status === "RUNNING" && <Loader2 className="h-4 w-4 text-indigo-400 animate-spin shrink-0" />}
-                      {stage.status === "FAILED" && <XCircle className="h-4 w-4 text-rose-400 shrink-0" />}
+                      {(stage.status === "FAILED" || stage.status === "REJECTED") && <XCircle className="h-4 w-4 text-rose-400 shrink-0" />}
+                      {stage.status === "AWAITING_APPROVAL" && <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0" />}
                       {stage.status === "PENDING" && <Clock className="h-4 w-4 text-zinc-600 shrink-0" />}
                       <div>
                         <p className="text-xs font-medium text-zinc-200">{stage.stageOrder + 1}. {stage.stageName}</p>

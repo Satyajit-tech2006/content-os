@@ -4,7 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum WorkspaceRole {
@@ -23,16 +24,20 @@ enum ProjectStatus {
 enum ExecutionStatus {
   PENDING
   RUNNING
+  AWAITING_APPROVAL
   COMPLETED
   FAILED
+  REJECTED
   CANCELLED
 }
 
 enum StageStatus {
   PENDING
   RUNNING
+  AWAITING_APPROVAL
   COMPLETED
   FAILED
+  REJECTED
   SKIPPED
 }
 
@@ -43,11 +48,32 @@ enum OutboxStatus {
 }
 
 enum AssetType {
+  SCRIPT
   RAW_FOOTAGE
   AUDIO
   IMAGE
   RENDERED_VIDEO
   SUBTITLE
+}
+
+enum ContentApprovalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+enum ApprovalAction {
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+enum RevisionSource {
+  AI_GENERATED
+  AI_REVISION
+  MANUAL_EDIT
 }
 
 enum AssetStatus {
@@ -67,7 +93,9 @@ model User {
 
   sessions        Session[]
   ownedWorkspaces Workspace[]       @relation("WorkspaceOwner")
-  memberships     WorkspaceMember[]
+  memberships       WorkspaceMember[]
+  editedRevisions   ContentRevision[]  @relation("RevisionEditor")
+  approvalDecisions ApprovalDecision[] @relation("ApprovalReviewer")
 }
 
 model Session {
@@ -103,7 +131,9 @@ model Workspace {
   contentAssets       ContentAsset[]
   platformConnections PlatformConnection[]
   publishingRecords   PublishingRecord[]
-  usageRecords        UsageRecord[]
+  usageRecords      UsageRecord[]
+  contentRevisions  ContentRevision[]
+  approvalDecisions ApprovalDecision[]
 
   @@index([ownerId])
 }
@@ -166,7 +196,9 @@ model Project {
   contentAssets       ContentAsset[]
   platformConnections PlatformConnection[]
   publishingRecords   PublishingRecord[]
-  usageRecords        UsageRecord[]
+  usageRecords      UsageRecord[]
+  contentRevisions  ContentRevision[]
+  approvalDecisions ApprovalDecision[]
 
   @@index([workspaceId, status])
   @@index([workspaceId, createdAt])
@@ -179,6 +211,8 @@ model WorkflowExecution {
   workflowTemplateId String
   status             ExecutionStatus @default(PENDING)
   currentStageIndex  Int             @default(0)
+  activeRevisionNum  Int             @default(1)
+  approvedRevisionId String?
   inputContext       Json            @default("{}")
   outputSummary      Json?
   errorMessage       String?
@@ -191,8 +225,10 @@ model WorkflowExecution {
   project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   workflowTemplate WorkflowTemplate         @relation(fields: [workflowTemplateId], references: [id], onDelete: Restrict)
   stages           WorkflowStageExecution[]
-  assets           ContentAsset[]
-  usageRecords     UsageRecord[]
+  assets            ContentAsset[]
+  revisions         ContentRevision[]
+  approvalDecisions ApprovalDecision[]
+  usageRecords      UsageRecord[]
 
   @@index([workspaceId, status])
   @@index([workspaceId, projectId, createdAt])
@@ -225,43 +261,109 @@ model WorkflowStageExecution {
 }
 
 model OutboxEvent {
-  id          String       @id @default(cuid())
-  workspaceId String
-  eventType   String
-  payload     Json
-  status      OutboxStatus @default(PENDING)
-  attempts    Int          @default(0)
-  lastError   String?
-  createdAt   DateTime     @default(now())
-  processedAt DateTime?
+  id             String       @id @default(cuid())
+  workspaceId    String
+  eventType      String
+  idempotencyKey String       @unique
+  payload        Json
+  status         OutboxStatus @default(PENDING)
+  attempts       Int          @default(0)
+  lastError      String?
+  nextRetryAt    DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  processedAt    DateTime?
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  @@index([status, createdAt])
+  @@index([status, nextRetryAt, createdAt])
   @@index([workspaceId])
 }
 
 model ContentAsset {
-  id          String      @id @default(cuid())
-  workspaceId String
-  projectId   String
-  executionId String?
-  type        AssetType
-  fileName    String
-  mimeType    String
-  fileSize    BigInt
-  storageKey  String      @unique
-  status      AssetStatus @default(READY)
-  metadata    Json        @default("{}")
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id                 String                @id @default(cuid())
+  workspaceId        String
+  projectId          String
+  executionId        String?
+  type               AssetType
+  fileName           String
+  mimeType           String
+  fileSize           BigInt
+  storageKey         String                @unique
+  status             AssetStatus           @default(READY)
+  approvalStatus     ContentApprovalStatus @default(PENDING_APPROVAL)
+  currentRevisionNum Int                   @default(1)
+  approvedRevisionId String?
+  metadata           Json                  @default("{}")
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
 
   workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   execution         WorkflowExecution? @relation(fields: [executionId], references: [id], onDelete: SetNull)
+  revisions         ContentRevision[]
+  approvalDecisions ApprovalDecision[]
   publishingRecords PublishingRecord[]
 
   @@index([workspaceId, projectId])
+  @@index([workspaceId, approvalStatus])
+}
+
+model ContentRevision {
+  id               String         @id @default(cuid())
+  workspaceId      String
+  projectId        String
+  executionId      String?
+  assetId          String
+  revisionNumber   Int
+  source           RevisionSource @default(AI_GENERATED)
+  title            String
+  hook             String?
+  voiceoverScript  String         @db.Text
+  description      String?        @db.Text
+  hashtags         String[]       @default([])
+  scriptPayload    Json
+  researchBrief    Json?
+  reviewerFeedback String?        @db.Text
+  stageKey         String?
+  provider         String?
+  model            String?
+  createdByUserId  String?
+  createdAt        DateTime       @default(now())
+
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  execution         WorkflowExecution? @relation(fields: [executionId], references: [id], onDelete: SetNull)
+  asset             ContentAsset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdByUser     User?              @relation("RevisionEditor", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  approvalDecisions ApprovalDecision[]
+
+  @@unique([assetId, revisionNumber])
+  @@index([workspaceId, assetId, revisionNumber])
+  @@index([executionId])
+}
+
+model ApprovalDecision {
+  id             String         @id @default(cuid())
+  workspaceId    String
+  projectId      String
+  executionId    String
+  assetId        String
+  revisionId     String
+  reviewerId     String
+  decision       ApprovalAction
+  comment        String?        @db.Text
+  idempotencyKey String?        @unique
+  createdAt      DateTime       @default(now())
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  asset     ContentAsset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  revision  ContentRevision   @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  reviewer  User              @relation("ApprovalReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId, assetId, createdAt])
+  @@index([executionId])
 }
 
 model PlatformConnection {

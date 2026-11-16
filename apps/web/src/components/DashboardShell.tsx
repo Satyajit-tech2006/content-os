@@ -84,16 +84,28 @@ export function DashboardShell() {
     }
   }, []);
 
+  const loadTemplates = useCallback(async () => {
+    if (!activeWorkspaceId) return;
+    try {
+      const tpl = await apiFetch<{ templates: WorkflowTemplateDTO[] }>(
+        "/workspaces/" + activeWorkspaceId + "/templates"
+      );
+      setTemplates(tpl.templates);
+    } catch {
+      // Ignore transient abort
+    }
+  }, [activeWorkspaceId]);
+
   const loadWorkspaceData = useCallback(async () => {
     if (!activeWorkspaceId) return;
-    const [ov, tpl] = await Promise.all([
-      apiFetch<OverviewResponse>("/workspaces/" + activeWorkspaceId + "/overview"),
-      apiFetch<{ templates: WorkflowTemplateDTO[] }>(
-        "/workspaces/" + activeWorkspaceId + "/templates"
-      ),
-    ]);
-    setOverview(ov);
-    setTemplates(tpl.templates);
+    try {
+      const ov = await apiFetch<OverviewResponse>(
+        "/workspaces/" + activeWorkspaceId + "/overview"
+      );
+      setOverview(ov);
+    } catch {
+      // Ignore transient network/abort errors during background polling
+    }
   }, [activeWorkspaceId]);
 
   useEffect(() => {
@@ -103,13 +115,25 @@ export function DashboardShell() {
   useEffect(() => {
     if (authState === "authenticated" && activeWorkspaceId) {
       loadWorkspaceData();
+      loadTemplates();
     }
-  }, [authState, activeWorkspaceId, loadWorkspaceData]);
+  }, [authState, activeWorkspaceId, loadWorkspaceData, loadTemplates]);
 
   useEffect(() => {
     if (!overview?.stats.runningExecutions) return;
-    const timer = setInterval(loadWorkspaceData, 2000);
-    return () => clearInterval(timer);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      await loadWorkspaceData();
+      if (!cancelled) {
+        timer = setTimeout(poll, 4000);
+      }
+    };
+    timer = setTimeout(poll, 4000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [overview?.stats.runningExecutions, loadWorkspaceData]);
 
   async function handleLogout() {

@@ -1,13 +1,14 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { prisma, type Prisma } from "@contentos/database";
 import {
+  AppError,
   NotFoundError,
   TriggerExecutionSchema,
   ValidationError,
   WorkflowStageDefinitionSchema,
 } from "@contentos/shared";
 import { z } from "zod";
-import { enqueueStageJob } from "../lib/queue.js";
+import { dispatchOutboxEvent } from "../lib/queue.js";
 import { logger } from "../lib/logger.js";
 import { requireAuth, requireWorkspaceAccess } from "../middleware/auth.js";
 
@@ -120,10 +121,13 @@ router.post(
           data: {
             workspaceId,
             eventType: "WORKFLOW_EXECUTION_START",
+            idempotencyKey: `exec_${createdExecution.id}_stage_0_rev_1`,
             payload: {
               executionId: createdExecution.id,
               workspaceId,
               stageOrder: 0,
+              revisionNum: 1,
+              jobId: `exec_${createdExecution.id}_stage_0_rev_1`,
             },
           },
         });
@@ -131,25 +135,106 @@ router.post(
         return { execution: createdExecution, outboxEvent: event };
       });
 
-      try {
-        const firstStage = stageDefinitions[0];
-        await enqueueStageJob(
-          { executionId: execution.id, workspaceId, stageOrder: 0 },
-          firstStage.retryPolicy.maxAttempts,
-          firstStage.retryPolicy.backoffMs
-        );
-        await prisma.outboxEvent.update({
-          where: { id: outboxEvent.id },
-          data: { status: "PROCESSED", processedAt: new Date() },
-        });
-      } catch (queueErr) {
-        logger.warn(
-          { err: queueErr, outboxEventId: outboxEvent.id },
-          "Immediate queue dispatch failed; outbox poller will retry"
-        );
+      const firstStage = stageDefinitions[0];
+      const dispatched = await dispatchOutboxEvent(
+        outboxEvent.id,
+        firstStage.retryPolicy.maxAttempts,
+        firstStage.retryPolicy.backoffMs
+      );
+      if (!dispatched) {
+        logger.warn({ outboxEventId: outboxEvent.id }, "Immediate queue dispatch failed; outbox poller will retry");
       }
 
       res.status(201).json({ execution });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+
+router.post(
+  "/:executionId/retry",
+  requireWorkspaceAccess(["OWNER", "ADMIN", "EDITOR"]),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const workspaceId = req.workspaceId!;
+      const executionId = String(req.params.executionId);
+
+      const { execution, outboxEventId } = await prisma.$transaction(async (tx) => {
+        const existing = await tx.workflowExecution.findFirst({
+          where: { id: executionId, workspaceId },
+          include: { stages: { orderBy: { stageOrder: "asc" } } },
+        });
+        if (!existing) {
+          throw new NotFoundError("Workflow execution");
+        }
+        if (existing.status !== "FAILED") {
+          throw new AppError("Only FAILED executions can be retried (current: " + existing.status + ")", 409, "CONFLICT");
+        }
+
+        const failedStage =
+          existing.stages.find((s) => s.status === "FAILED") ??
+          existing.stages.find((s) => s.stageOrder === existing.currentStageIndex);
+
+        if (!failedStage) {
+          throw new ValidationError("No failed stage found to retry");
+        }
+
+        const claimed = await tx.workflowExecution.updateMany({
+          where: { id: executionId, workspaceId, status: "FAILED" },
+          data: {
+            status: "RUNNING",
+            errorMessage: null,
+            completedAt: null,
+            currentStageIndex: failedStage.stageOrder,
+          },
+        });
+        if (claimed.count === 0) {
+          throw new AppError("Execution retry already in progress", 409, "CONFLICT");
+        }
+
+        await tx.workflowStageExecution.update({
+          where: { id: failedStage.id },
+          data: {
+            status: "PENDING",
+            errorMessage: null,
+            completedAt: null,
+          },
+        });
+
+        const outboxKey = `exec_${executionId}_retry_stage_${failedStage.stageOrder}_attempt_${failedStage.attemptCount + 1}`;
+        const outbox = await tx.outboxEvent.upsert({
+          where: { idempotencyKey: outboxKey },
+          update: {},
+          create: {
+            workspaceId,
+            eventType: "WORKFLOW_STAGE_RETRY",
+            idempotencyKey: outboxKey,
+            payload: {
+              executionId,
+              workspaceId,
+              stageOrder: failedStage.stageOrder,
+              revisionNum: existing.activeRevisionNum,
+              jobId: String(outboxKey).replace(/:/g, "_"),
+            },
+          },
+        });
+
+        const refreshed = await tx.workflowExecution.findUniqueOrThrow({
+          where: { id: executionId },
+          include: {
+            project: { select: { id: true, name: true, niche: true } },
+            workflowTemplate: true,
+            stages: { orderBy: { stageOrder: "asc" } },
+          },
+        });
+
+        return { execution: refreshed, outboxEventId: outbox.id };
+      });
+
+      await dispatchOutboxEvent(outboxEventId);
+      res.json({ execution });
     } catch (err) {
       next(err);
     }

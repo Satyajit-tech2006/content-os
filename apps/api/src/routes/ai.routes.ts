@@ -4,7 +4,7 @@ import { prisma, type Prisma } from "@contentos/database";
 import { NotFoundError, ValidationError, type StageKey } from "@contentos/shared";
 import { z } from "zod";
 import { requireAuth, requireWorkspaceAccess } from "../middleware/auth.js";
-import { workflowQueue } from "../lib/queue.js";
+import { dispatchOutboxEvent } from "../lib/queue.js";
 
 const router: Router = Router({ mergeParams: true });
 
@@ -144,43 +144,54 @@ export async function triggerScriptGenerationWorkflow(req: Request, res: Respons
     const firstStage = sortedStages[0];
     if (!firstStage) throw new ValidationError("Workflow template has no stages");
 
-    const execution = await prisma.workflowExecution.create({
-      data: {
-        workspaceId: project.workspaceId,
-        projectId: project.id,
-        workflowTemplateId: project.workflowTemplateId,
-        status: "PENDING",
-        currentStageIndex: 0,
-        inputContext: {
-          topic: input.topic,
-          targetAudience: input.targetAudience ?? project.targetAudience,
-          contentPlatform: input.contentPlatform ?? project.platforms.join(", "),
-          desiredDuration: input.desiredDuration,
-          tone: input.tone,
-          language: input.language,
-        } as Prisma.InputJsonValue,
-        stages: {
-          create: sortedStages.map((s) => ({
-            workspaceId: project.workspaceId,
-            stageKey: s.key,
-            stageName: s.name || s.key,
-            stageOrder: s.order,
-            status: "PENDING",
-          })),
+    const { execution, outboxEvent } = await prisma.$transaction(async (tx) => {
+      const created = await tx.workflowExecution.create({
+        data: {
+          workspaceId: project.workspaceId,
+          projectId: project.id,
+          workflowTemplateId: project.workflowTemplateId,
+          status: "PENDING",
+          currentStageIndex: 0,
+          inputContext: {
+            topic: input.topic,
+            targetAudience: input.targetAudience ?? project.targetAudience,
+            contentPlatform: input.contentPlatform ?? project.platforms.join(", "),
+            desiredDuration: input.desiredDuration,
+            tone: input.tone,
+            language: input.language,
+          } as Prisma.InputJsonValue,
+          stages: {
+            create: sortedStages.map((s, idx) => ({
+              workspaceId: project.workspaceId,
+              stageKey: s.key,
+              stageName: s.name || s.key,
+              stageOrder: idx,
+              status: "PENDING",
+            })),
+          },
         },
-      },
-      include: { stages: { orderBy: { stageOrder: "asc" } } },
+        include: { stages: { orderBy: { stageOrder: "asc" } } },
+      });
+
+      const event = await tx.outboxEvent.create({
+        data: {
+          workspaceId: project.workspaceId,
+          eventType: "WORKFLOW_EXECUTION_START",
+          idempotencyKey: `exec:${created.id}:stage:0:rev:1`,
+          payload: {
+            executionId: created.id,
+            workspaceId: project.workspaceId,
+            stageOrder: 0,
+            revisionNum: 1,
+            jobId: `exec:${created.id}:stage:0:rev:1`,
+          },
+        },
+      });
+
+      return { execution: created, outboxEvent: event };
     });
 
-    await workflowQueue.add(
-      "execute-stage",
-      {
-        executionId: execution.id,
-        workspaceId: project.workspaceId,
-        stageKey: firstStage.key,
-      },
-      { jobId: execution.id + "-" + firstStage.key + "-1" }
-    );
+    await dispatchOutboxEvent(outboxEvent.id);
 
     res.status(201).json({ execution });
   } catch (err) {

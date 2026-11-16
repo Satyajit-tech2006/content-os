@@ -18,6 +18,8 @@ export interface StageJobPayload {
   executionId: string;
   workspaceId: string;
   stageOrder: number;
+  revisionNum?: number;
+  jobId?: string;
 }
 
 export async function processWorkflowStageJob(
@@ -41,7 +43,11 @@ export async function processWorkflowStageJob(
     return;
   }
 
-  if (execution.status === "CANCELLED" || execution.status === "COMPLETED") {
+  if (
+    execution.status === "CANCELLED" ||
+    execution.status === "COMPLETED" ||
+    execution.status === "REJECTED"
+  ) {
     logger.info({ executionId, status: execution.status }, "Execution already terminal; skipping");
     return;
   }
@@ -64,6 +70,43 @@ export async function processWorkflowStageJob(
   const currentStageDef = stageDefs[stageOrder];
   const stageKey = StageKeySchema.parse(stageRecord.stageKey);
   const handler = defaultStageRegistry.get(stageKey);
+
+  // Publishing safety: verify an exact approved revision is pinned before running publishing
+  let pinnedApprovedRevision: Record<string, unknown> | undefined;
+  if (stageKey === "publishing") {
+    if (!execution.approvedRevisionId) {
+      throw new Error("Publishing blocked: workflow execution has no approvedRevisionId");
+    }
+    const approvedRevision = await prisma.contentRevision.findFirst({
+      where: {
+        id: execution.approvedRevisionId,
+        workspaceId,
+        executionId,
+      },
+      include: { asset: true },
+    });
+    if (!approvedRevision) {
+      throw new Error("Publishing blocked: approved revision " + execution.approvedRevisionId + " not found");
+    }
+    if (approvedRevision.asset.approvalStatus !== "APPROVED") {
+      throw new Error(
+        "Publishing blocked: asset approvalStatus is " +
+          approvedRevision.asset.approvalStatus +
+          " (expected APPROVED)"
+      );
+    }
+    pinnedApprovedRevision = {
+      id: approvedRevision.id,
+      assetId: approvedRevision.assetId,
+      revisionNumber: approvedRevision.revisionNumber,
+      title: approvedRevision.title,
+      hook: approvedRevision.hook,
+      voiceoverScript: approvedRevision.voiceoverScript,
+      description: approvedRevision.description,
+      hashtags: approvedRevision.hashtags,
+      scriptPayload: approvedRevision.scriptPayload,
+    };
+  }
 
   const previousOutputs: Record<string, unknown> = {};
   for (const prev of execution.stages) {
@@ -105,16 +148,21 @@ export async function processWorkflowStageJob(
   ]);
 
   const aiFactory = new AIProviderFactory({
-  defaultProvider: env.AI_PROVIDER,
-  ollamaBaseUrl: env.OLLAMA_BASE_URL,
-  ollamaDefaultModel: env.OLLAMA_DEFAULT_MODEL,
-  geminiApiKey: env.GEMINI_API_KEY,
-  geminiDefaultModel: env.GEMINI_MODEL,
-});
-const orchestrator = new AIOrchestrator(aiFactory);
-const aiProvider = aiFactory.getProvider();
+    defaultProvider: env.AI_PROVIDER,
+    ollamaBaseUrl: env.OLLAMA_BASE_URL,
+    ollamaDefaultModel: env.OLLAMA_DEFAULT_MODEL,
+    geminiApiKey: env.GEMINI_API_KEY,
+    geminiDefaultModel: env.GEMINI_MODEL,
+  });
+  const orchestrator = new AIOrchestrator(aiFactory);
+  const aiProvider = aiFactory.getProvider();
 
   try {
+    const runtimeInputContext: Record<string, unknown> = {
+      ...((execution.inputContext as Record<string, unknown>) ?? {}),
+      ...(pinnedApprovedRevision ? { approvedRevision: pinnedApprovedRevision } : {}),
+    };
+
     const result = await handler.execute({
       executionId,
       workspaceId,
@@ -130,15 +178,206 @@ const aiProvider = aiFactory.getProvider();
       },
       stageKey,
       stageConfig: currentStageDef?.config ?? {},
-      inputContext: (execution.inputContext as Record<string, unknown>) ?? {},
+      inputContext: runtimeInputContext,
       previousOutputs,
       aiProvider,
       orchestrator,
       log,
     });
 
-    await prisma.$transaction([
-      prisma.workflowStageExecution.update({
+    // If script_generation succeeded, persist immutable ContentRevision + SCRIPT ContentAsset immediately
+    if (stageKey === "script_generation") {
+      const mergedNow = { ...previousOutputs, ...result.output };
+      const scriptData = (mergedNow.script as Record<string, unknown> | undefined) ?? {};
+      const genMeta = (result.output.generationMeta as Record<string, unknown> | undefined) ?? {};
+      const title =
+        typeof scriptData.title === "string" && scriptData.title.trim()
+          ? scriptData.title.trim()
+          : execution.project.name + " ? Script";
+      const hook = typeof scriptData.hook === "string" ? scriptData.hook : null;
+      const voiceoverScript =
+        typeof scriptData.voiceoverScript === "string"
+          ? scriptData.voiceoverScript
+          : typeof scriptData.script === "string"
+            ? scriptData.script
+            : "";
+      const description =
+        typeof scriptData.description === "string"
+          ? scriptData.description
+          : typeof scriptData.caption === "string"
+            ? scriptData.caption
+            : null;
+      const hashtags = Array.isArray(scriptData.hashtags)
+        ? scriptData.hashtags.filter((h): h is string => typeof h === "string")
+        : [];
+      const reviewerFeedback =
+        typeof runtimeInputContext.reviewerFeedback === "string"
+          ? runtimeInputContext.reviewerFeedback
+          : null;
+
+      const scriptStorageKey = `workspaces/${workspaceId}/executions/${executionId}/script.json`;
+      await storeArtifact(
+        scriptStorageKey,
+        JSON.stringify(
+          {
+            title,
+            revisionNumber: execution.activeRevisionNum,
+            researchBrief: mergedNow.researchBrief ?? null,
+            script: scriptData,
+          },
+          null,
+          2
+        )
+      );
+
+      await prisma.$transaction(async (tx) => {
+        const existingAsset = await tx.contentAsset.findUnique({
+          where: { storageKey: scriptStorageKey },
+        });
+
+        const nextRevNum = existingAsset
+          ? Math.max(existingAsset.currentRevisionNum + 1, execution.activeRevisionNum)
+          : execution.activeRevisionNum;
+
+        const asset = existingAsset
+          ? await tx.contentAsset.update({
+              where: { id: existingAsset.id },
+              data: {
+                fileName: title.slice(0, 120),
+                fileSize: BigInt(Buffer.byteLength(JSON.stringify(scriptData), "utf8")),
+                approvalStatus: execution.project.approvalRequired ? "PENDING_APPROVAL" : "APPROVED",
+                currentRevisionNum: nextRevNum,
+                approvedRevisionId: null,
+                metadata: {
+                  title,
+                  approvalStatus: execution.project.approvalRequired ? "PENDING_APPROVAL" : "APPROVED",
+                  script: scriptData,
+                  researchBrief: mergedNow.researchBrief ?? null,
+                } as Prisma.InputJsonValue,
+              },
+            })
+          : await tx.contentAsset.create({
+              data: {
+                workspaceId,
+                projectId: execution.projectId,
+                executionId,
+                type: "SCRIPT",
+                fileName: title.slice(0, 120),
+                mimeType: "application/json",
+                fileSize: BigInt(Buffer.byteLength(JSON.stringify(scriptData), "utf8")),
+                storageKey: scriptStorageKey,
+                status: "READY",
+                approvalStatus: execution.project.approvalRequired ? "PENDING_APPROVAL" : "APPROVED",
+                currentRevisionNum: nextRevNum,
+                metadata: {
+                  title,
+                  approvalStatus: execution.project.approvalRequired ? "PENDING_APPROVAL" : "APPROVED",
+                  script: scriptData,
+                  researchBrief: mergedNow.researchBrief ?? null,
+                } as Prisma.InputJsonValue,
+              },
+            });
+
+        const revision = await tx.contentRevision.upsert({
+          where: {
+            assetId_revisionNumber: {
+              assetId: asset.id,
+              revisionNumber: nextRevNum,
+            },
+          },
+          update: {
+            title,
+            hook,
+            voiceoverScript,
+            description,
+            hashtags,
+            scriptPayload: scriptData as Prisma.InputJsonValue,
+            researchBrief: (mergedNow.researchBrief ?? null) as Prisma.InputJsonValue,
+            reviewerFeedback,
+            stageKey: "script_generation",
+            provider: typeof genMeta.provider === "string" ? genMeta.provider : null,
+            model: typeof genMeta.model === "string" ? genMeta.model : null,
+          },
+          create: {
+            workspaceId,
+            projectId: execution.projectId,
+            executionId,
+            assetId: asset.id,
+            revisionNumber: nextRevNum,
+            source: nextRevNum > 1 ? "AI_REVISION" : "AI_GENERATED",
+            title,
+            hook,
+            voiceoverScript,
+            description,
+            hashtags,
+            scriptPayload: scriptData as Prisma.InputJsonValue,
+            researchBrief: (mergedNow.researchBrief ?? null) as Prisma.InputJsonValue,
+            reviewerFeedback,
+            stageKey: "script_generation",
+            provider: typeof genMeta.provider === "string" ? genMeta.provider : null,
+            model: typeof genMeta.model === "string" ? genMeta.model : null,
+          },
+        });
+
+        if (!execution.project.approvalRequired) {
+          await tx.contentAsset.update({
+            where: { id: asset.id },
+            data: { approvedRevisionId: revision.id },
+          });
+          await tx.workflowExecution.update({
+            where: { id: executionId },
+            data: { approvedRevisionId: revision.id, activeRevisionNum: nextRevNum },
+          });
+        } else {
+          await tx.workflowExecution.update({
+            where: { id: executionId },
+            data: { activeRevisionNum: nextRevNum },
+          });
+        }
+      });
+    }
+
+    // Human-in-the-loop Approval Gate: pause execution cleanly without blocking worker
+    if (stageKey === "approval" && execution.project.approvalRequired) {
+      log("info", "Workflow paused at approval gate (AWAITING_APPROVAL) pending human review in Content Library");
+
+      const mergedOutputs = { ...previousOutputs, ...result.output };
+      await prisma.$transaction([
+        prisma.workflowStageExecution.update({
+          where: { id: stageRecord.id },
+          data: {
+            status: "AWAITING_APPROVAL",
+            output: result.output as Prisma.InputJsonValue,
+            logs: logs as unknown as Prisma.InputJsonValue,
+            errorMessage: null,
+          },
+        }),
+        prisma.workflowExecution.update({
+          where: { id: executionId },
+          data: {
+            status: "AWAITING_APPROVAL",
+            currentStageIndex: stageOrder,
+            outputSummary: mergedOutputs as Prisma.InputJsonValue,
+          },
+        }),
+        prisma.contentAsset.updateMany({
+          where: { executionId, workspaceId, type: "SCRIPT" },
+          data: { approvalStatus: "PENDING_APPROVAL" },
+        }),
+      ]);
+
+      logger.info({ executionId, stageOrder }, "Execution paused at AWAITING_APPROVAL");
+      return;
+    }
+
+    const nextStageOrder = stageOrder + 1;
+    const nextStageDef = stageDefs[nextStageOrder];
+    const outboxKey = nextStageDef
+      ? `exec_${executionId}_stage_${nextStageOrder}_rev_${execution.activeRevisionNum}`
+      : null;
+
+    const createdOutbox = await prisma.$transaction(async (tx) => {
+      await tx.workflowStageExecution.update({
         where: { id: stageRecord.id },
         data: {
           status: "COMPLETED",
@@ -147,9 +386,10 @@ const aiProvider = aiFactory.getProvider();
           errorMessage: null,
           completedAt: new Date(),
         },
-      }),
-      ...(result.usage ?? []).map((u) =>
-        prisma.usageRecord.create({
+      });
+
+      for (const u of result.usage ?? []) {
+        await tx.usageRecord.create({
           data: {
             workspaceId,
             projectId: execution.projectId,
@@ -166,110 +406,68 @@ const aiProvider = aiFactory.getProvider();
             errorMessage: u.errorMessage ?? null,
             costMetadata: (u.costMetadata ?? {}) as Prisma.InputJsonValue,
           },
-        })
-      ),
-    ]);
+        });
+      }
 
-    const nextStageOrder = stageOrder + 1;
-    const nextStageDef = stageDefs[nextStageOrder];
-
-    if (nextStageDef) {
-      await queue.add(
-        "execute-stage",
-        { executionId, workspaceId, stageOrder: nextStageOrder },
-        {
-          jobId: executionId + ":stage:" + nextStageOrder,
-          attempts: nextStageDef.retryPolicy.maxAttempts,
-          backoff: {
-            type: "exponential",
-            delay: nextStageDef.retryPolicy.backoffMs,
+      if (nextStageDef && outboxKey) {
+        return tx.outboxEvent.upsert({
+          where: { idempotencyKey: outboxKey },
+          update: {},
+          create: {
+            workspaceId,
+            eventType: "WORKFLOW_STAGE_ENQUEUE",
+            idempotencyKey: outboxKey,
+            payload: {
+              executionId,
+              workspaceId,
+              stageOrder: nextStageOrder,
+              revisionNum: execution.activeRevisionNum,
+              jobId: String(outboxKey).replace(/:/g, "_"),
+            },
           },
-        }
-      );
+        });
+      }
+      return null;
+    });
+
+    if (nextStageDef && createdOutbox && outboxKey) {
+      try {
+        await queue.add(
+          "execute-stage",
+          {
+            executionId,
+            workspaceId,
+            stageOrder: nextStageOrder,
+            revisionNum: execution.activeRevisionNum,
+            jobId: String(outboxKey).replace(/:/g, "_"),
+          },
+          {
+            jobId: String(outboxKey).replace(/:/g, "_"),
+            attempts: nextStageDef.retryPolicy.maxAttempts,
+            backoff: {
+              type: "exponential",
+              delay: nextStageDef.retryPolicy.backoffMs,
+            },
+          }
+        );
+        await prisma.outboxEvent.update({
+          where: { id: createdOutbox.id },
+          data: { status: "PROCESSED", processedAt: new Date() },
+        });
+      } catch (qErr) {
+        logger.warn({ err: qErr, outboxId: createdOutbox.id }, "Immediate stage enqueue failed; outbox dispatcher will retry");
+      }
     } else {
       const mergedOutputs = { ...previousOutputs, ...result.output };
-      const scriptData = (mergedOutputs.script as Record<string, unknown> | undefined) ?? {};
-      const mediaData = (mergedOutputs.renderedMedia as Record<string, unknown> | undefined) ?? {};
-      const approvalStatus = execution.project.approvalRequired ? "PENDING_REVIEW" : "APPROVED";
-      const title = typeof scriptData.title === "string" && scriptData.title
-        ? scriptData.title
-        : execution.project.name + " ? Episode";
-
-      const scriptStorageKey = "workspaces/" + workspaceId + "/executions/" + executionId + "/script.json";
-      const videoStorageKey =
-        typeof mediaData.storageKey === "string"
-          ? mediaData.storageKey
-          : "workspaces/" + workspaceId + "/executions/" + executionId + "/master.mp4";
-
-      await Promise.all([
-        storeArtifact(scriptStorageKey, JSON.stringify({ title, researchBrief: mergedOutputs.researchBrief ?? null, script: scriptData }, null, 2)),
-        storeArtifact(videoStorageKey + ".manifest.json", JSON.stringify({ title, media: mediaData, quality: mergedOutputs.qualityReport ?? null }, null, 2)),
-      ]);
-
-      await prisma.$transaction([
-        prisma.workflowExecution.update({
-          where: { id: executionId },
-          data: {
-            status: "COMPLETED",
-            outputSummary: mergedOutputs as Prisma.InputJsonValue,
-            completedAt: new Date(),
-          },
-        }),
-        prisma.contentAsset.upsert({
-          where: { storageKey: "workspaces/" + workspaceId + "/executions/" + executionId + "/script.json" },
-          update: {},
-          create: {
-            workspaceId,
-            projectId: execution.projectId,
-            executionId,
-            type: "RAW_FOOTAGE",
-            fileName: title.slice(0, 80) + " (Script)",
-            mimeType: "application/json",
-            fileSize: BigInt(Buffer.byteLength(JSON.stringify(scriptData), "utf8")),
-            storageKey: "workspaces/" + workspaceId + "/executions/" + executionId + "/script.json",
-            status: "READY",
-            metadata: {
-              title,
-              approvalStatus,
-              script: scriptData,
-              researchBrief: mergedOutputs.researchBrief ?? null,
-              qualityReport: mergedOutputs.qualityReport ?? null,
-            } as Prisma.InputJsonValue,
-          },
-        }),
-        prisma.contentAsset.upsert({
-          where: {
-            storageKey:
-              typeof mediaData.storageKey === "string"
-                ? mediaData.storageKey
-                : "workspaces/" + workspaceId + "/executions/" + executionId + "/master.mp4",
-          },
-          update: {},
-          create: {
-            workspaceId,
-            projectId: execution.projectId,
-            executionId,
-            type: "RENDERED_VIDEO",
-            fileName: title.slice(0, 80) + ".mp4",
-            mimeType: typeof mediaData.mimeType === "string" ? mediaData.mimeType : "video/mp4",
-            fileSize: BigInt(4_250_000),
-            storageKey:
-              typeof mediaData.storageKey === "string"
-                ? mediaData.storageKey
-                : "workspaces/" + workspaceId + "/executions/" + executionId + "/master.mp4",
-            status: "READY",
-            metadata: {
-              title,
-              approvalStatus,
-              durationSec: mediaData.durationSec ?? 45,
-              resolution: mediaData.resolution ?? "1080x1920",
-              renderMode: mediaData.renderMode ?? "simulated_v0.1",
-              script: scriptData,
-            } as Prisma.InputJsonValue,
-          },
-        }),
-      ]);
-      logger.info({ executionId }, "Workflow execution completed and assets persisted");
+      await prisma.workflowExecution.update({
+        where: { id: executionId },
+        data: {
+          status: "COMPLETED",
+          outputSummary: mergedOutputs as Prisma.InputJsonValue,
+          completedAt: new Date(),
+        },
+      });
+      logger.info({ executionId }, "Workflow execution completed");
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown stage error";
