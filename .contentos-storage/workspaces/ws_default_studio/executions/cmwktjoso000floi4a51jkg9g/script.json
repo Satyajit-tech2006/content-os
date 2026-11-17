@@ -1,0 +1,89 @@
+{
+  "title": "How the Liquor Industry Makes Billions From a $3 Bottle",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "How the Liquor Industry Makes Billions From a Single $3 Bottle",
+    "topic": "The $3 Bottle",
+    "hookIdeas": [
+      "A $3 bottle of spirits? Sounds too good to be true! But what if I told you that's the cost of producing just one bottle of liquor?",
+      "From grain to glass, the liquor industry's secret to making billions lies in the 'three-tier system'. Let's crack it open!",
+      "What happens when a $25 bottle of liquor becomes $240 at the bar? It's a math problem that'll make your head spin – but it's true!"
+    ],
+    "talkingPoints": [
+      "The cost of producing a standard bottle of spirits is barely $3, thanks to economies of scale and efficient production processes.",
+      "However, the three-tier distribution system adds a whopping 30-50% markup at each stage, before government excise taxes kick in.",
+      "Bars and clubs turn the same $25 bottle into $240 by selling 16 individual pours at $15 each, making it a lucrative business for nightlife establishments.",
+      "Branding, artificial scarcity, and the nightlife experience all contribute to the liquor industry's remarkable profitability, making it one of the highest-margin businesses on earth."
+    ],
+    "targetKeywords": [
+      "liquor industry",
+      "three-tier distribution system",
+      "bar profit margins",
+      "nightlife industry",
+      "liquor marketing",
+      "artificial scarcity"
+    ]
+  },
+  "script": {
+    "title": "How the Liquor Industry Makes Billions From a $3 Bottle",
+    "hook": "A $3 bottle of spirits? Sounds too good to be true!",
+    "script": "From grain to glass, the liquor industry's secret to making billions lies in the 'three-tier system'. The cost of producing a standard bottle of spirits is barely $3, thanks to economies of scale and efficient production processes. However, the three-tier distribution system adds a whopping 30-50% markup at each stage, before government excise taxes kick in. Bars and clubs turn the same $25 bottle into $240 by selling 16 individual pours at $15 each. Branding, artificial scarcity, and the nightlife experience all contribute to the liquor industry's remarkable profitability, making it one of the highest-margin businesses on earth. So, the next time you enjoy a drink at your favorite bar, remember: there's a $3 bottle of spirits behind every $240 glass.",
+    "description": "The surprising truth behind the liquor industry's massive profits",
+    "hashtags": [
+      "#liquorindustry",
+      "#three-tierdistribution",
+      "#barprofitmargins",
+      "#nightlifeindustry",
+      "#liquormarketing",
+      "#artificials scarcity"
+    ],
+    "estimatedDuration": 120,
+    "storyboard": [
+      {
+        "beatSummary": "Start in a busy office cubicle",
+        "action": "thinking",
+        "position": "left",
+        "propType": "comparison_bars",
+        "propTitle": "Economies of scale",
+        "propMetrics": [
+          "$3",
+          "production cost"
+        ]
+      },
+      {
+        "beatSummary": "Transition to a night street",
+        "action": "walking_across",
+        "position": "center",
+        "propType": "parallel_grid",
+        "propTitle": "Three-tier distribution system",
+        "propMetrics": [
+          "30-50% markup",
+          "government excise taxes"
+        ]
+      },
+      {
+        "beatSummary": "Bars and clubs making a profit",
+        "action": "directing_swarm",
+        "position": "right",
+        "propType": "growth_chart",
+        "propTitle": "$240 from $25",
+        "propMetrics": [
+          "16 individual pours",
+          "$15 each"
+        ]
+      },
+      {
+        "beatSummary": "Celebrating the industry's success",
+        "action": "celebrating",
+        "position": "traverse",
+        "propType": "trophy_badge",
+        "propTitle": "Highest-margin business",
+        "propMetrics": [
+          "remarkable profitability"
+        ]
+      }
+    ],
+    "voiceoverScript": "From grain to glass, the liquor industry's secret to making billions lies in the 'three-tier system'. The cost of producing a standard bottle of spirits is barely $3, thanks to economies of scale and efficient production processes. However, the three-tier distribution system adds a whopping 30-50% markup at each stage, before government excise taxes kick in. Bars and clubs turn the same $25 bottle into $240 by selling 16 individual pours at $15 each. Branding, artificial scarcity, and the nightlife experience all contribute to the liquor industry's remarkable profitability, making it one of the highest-margin businesses on earth. So, the next time you enjoy a drink at your favorite bar, remember: there's a $3 bottle of spirits behind every $240 glass.",
+    "caption": "The surprising truth behind the liquor industry's massive profits"
+  }
+}

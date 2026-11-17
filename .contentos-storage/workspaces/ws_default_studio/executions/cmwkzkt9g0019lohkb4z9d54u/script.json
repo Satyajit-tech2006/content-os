@@ -1,0 +1,102 @@
+{
+  "title": "How Computer RAM Actually Works Inside Your PC",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "The Surprising Truth Behind RAM's Speed and Lifespan",
+    "topic": "How Computer RAM Actually Works Inside Your PC",
+    "hookIdeas": [
+      "Ever wondered why your PC's RAM seems to magically reload apps in seconds? It's not magic, it's science!",
+      "Did you know that RAM is 100 times faster than an SSD? Let's dive into the fascinating world of microscopic transistor cells!",
+      "What happens to the data in your RAM when you shut down your PC? The answer is both surprising and revealing!"
+    ],
+    "talkingPoints": [
+      "RAM uses microscopic transistor and capacitor cells to store binary 1s and 0s as electrical charges. These tiny cells are arranged in a matrix and can be accessed in nanoseconds via high-speed data buses.",
+      "The memory controller is the mastermind behind RAM's speed. It fetches any address in the nanoseconds, making it incredibly fast. But what makes it so efficient?",
+      "The reason RAM instantly wipes clean when power turns off is due to a phenomenon called 'electromigration'. When the voltage drops, the electrical charges in the cells shift, resetting the data."
+    ],
+    "targetKeywords": [
+      "how RAM works",
+      "computer memory explained",
+      "microscopic transistor cells",
+      "RAM speed vs SSD",
+      "electromigration in RAM"
+    ]
+  },
+  "script": {
+    "title": "How Computer RAM Actually Works Inside Your PC",
+    "hook": "Ever wondered why your PC's RAM seems to magically reload apps in seconds? It's not magic, it's science!",
+    "script": "RAM uses microscopic transistor and capacitor cells to store binary 1s and 0s as electrical charges. These tiny cells are arranged in a matrix and can be accessed in nanoseconds via high-speed data buses. The memory controller is the mastermind behind RAM's speed, fetching any address in the nanoseconds, making it incredibly fast. But what makes it so efficient? The reason RAM instantly wipes clean when power turns off is due to a phenomenon called 'electromigration'. When the voltage drops, the electrical charges in the cells shift, resetting the data. RAM is 100 times faster than an SSD, and it's all thanks to these tiny cells and the memory controller's precision. So next time you reload an app, remember, it's not magic, it's science!",
+    "description": "Learn how computer RAM works inside your PC, and discover the surprising truth behind its speed and lifespan. #ComputerMemory #RAMexplained #MicroscopicTransistorCells #RAMspeedvsSSD",
+    "hashtags": [
+      "#ComputerMemory",
+      "#RAMexplained",
+      "#MicroscopicTransistorCells",
+      "#RAMspeedvsSSD",
+      "#TechExplained",
+      "#ScienceInAction",
+      "#InsideYourPC",
+      "#TechFacts",
+      "#TechTutorials"
+    ],
+    "estimatedDuration": 120,
+    "storyboard": [
+      {
+        "beatSummary": "Introduction to RAM and its importance",
+        "action": "thinking",
+        "position": "left",
+        "propType": "comparison_bars",
+        "propTitle": "RAM vs SSD",
+        "propMetrics": [
+          "Speed",
+          "Capacity"
+        ]
+      },
+      {
+        "beatSummary": "How RAM stores data",
+        "action": "presenting_board",
+        "position": "center",
+        "propType": "parallel_grid",
+        "propTitle": "Microscopic Transistor Cells",
+        "propMetrics": [
+          "Size",
+          "Number of Cells"
+        ]
+      },
+      {
+        "beatSummary": "The memory controller's role",
+        "action": "directing_swarm",
+        "position": "right",
+        "propType": "growth_chart",
+        "propTitle": "High-Speed Data Bus",
+        "propMetrics": [
+          "Speed",
+          "Throughput"
+        ]
+      },
+      {
+        "beatSummary": "Electromigration and RAM's lifespan",
+        "action": "examining_lens",
+        "position": "traverse",
+        "propType": "blueprint_structure",
+        "propTitle": "Electromigration",
+        "propMetrics": [
+          "Effect",
+          "Impact"
+        ]
+      },
+      {
+        "beatSummary": "Conclusion and final thoughts",
+        "action": "celebrating",
+        "position": "center",
+        "propType": "speed_gauge",
+        "propTitle": "RAM's Speed and Science",
+        "propMetrics": [
+          "Speed",
+          "Science"
+        ]
+      }
+    ],
+    "voiceoverScript": "RAM uses microscopic transistor and capacitor cells to store binary 1s and 0s as electrical charges. These tiny cells are arranged in a matrix and can be accessed in nanoseconds via high-speed data buses. The memory controller is the mastermind behind RAM's speed, fetching any address in the nanoseconds, making it incredibly fast. But what makes it so efficient? The reason RAM instantly wipes clean when power turns off is due to a phenomenon called 'electromigration'. When the voltage drops, the electrical charges in the cells shift, resetting the data. RAM is 100 times faster than an SSD, and it's all thanks to these tiny cells and the memory controller's precision. So next time you reload an app, remember, it's not magic, it's science!",
+    "caption": "Learn how computer RAM works inside your PC, and discover the surprising truth behind its speed and lifespan. #ComputerMemory #RAMexplained #MicroscopicTransistorCells #RAMspeedvsSSD"
+  }
+}

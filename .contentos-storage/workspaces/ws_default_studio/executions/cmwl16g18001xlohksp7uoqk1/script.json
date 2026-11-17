@@ -1,0 +1,103 @@
+{
+  "title": "The Hidden Economics of a ₹350 Specialty Coffee Cup",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "How a ₹18 Coffee Cherry Becomes a ₹350 Cup",
+    "topic": "The Hidden Economics of a ₹350 Specialty Coffee Cup",
+    "hookIdeas": [
+      "You'd think a ₹350 cup of coffee would be made from high-quality beans, but the truth is in the journey of the humble coffee cherry.",
+      "The price of a ₹350 cup of coffee is a mystery. Let's peel back the layers and reveal the economics behind it.",
+      "From ₹18 to ₹350, the transformation of a coffee cherry is a story of supply, demand, and profit."
+    ],
+    "talkingPoints": [
+      "Coffee cherries are grown by smallholder farmers in Ethiopia, who sell them for ₹18 in raw green beans.",
+      "Global maritime shipping and wet-mill processing add ₹24 to the price, making it ₹42.",
+      "Roasting and small-batch production lose 18% water weight, increasing the price to ₹65.",
+      "The final price of ₹350 is achieved through the addition of milk, rent, and barista craft, resulting in a 65% gross margin."
+    ],
+    "targetKeywords": [
+      "coffee economics",
+      "specialty coffee",
+      "coffee cherry value chain",
+      "smallholder farmers",
+      "coffee production costs",
+      "coffee pricing"
+    ]
+  },
+  "script": {
+    "title": "The Hidden Economics of a ₹350 Specialty Coffee Cup",
+    "hook": "From ₹18 to ₹350, the transformation of a coffee cherry is a story of supply, demand, and profit",
+    "script": "You'd think a ₹350 cup of coffee would be made from high-quality beans, but the truth is in the journey of the humble coffee cherry. Coffee cherries are grown by smallholder farmers in Ethiopia, who sell them for ₹18 in raw green beans. Global maritime shipping and wet-mill processing add ₹24 to the price, making it ₹42. Roasting and small-batch production lose 18% water weight, increasing the price to ₹65. The final price of ₹350 is achieved through the addition of milk, rent, and barista craft, resulting in a 65% gross margin. It's a fascinating story of economics and craftsmanship. Try a cup and taste the difference!",
+    "description": "The journey of a ₹350 cup of coffee from ₹18 coffee cherry to expertly crafted specialty coffee.",
+    "hashtags": [
+      "#coffeeeconomics",
+      "#specialtycoffee",
+      "#coffeecherryvaluechain",
+      "#smallholderfarmers",
+      "#coffeeproductioncosts",
+      "#coffeepricing",
+      "#foodforthought",
+      "#coffeeorigin"
+    ],
+    "estimatedDuration": 55,
+    "storyboard": [
+      {
+        "beatSummary": "Intro to coffee cherry",
+        "action": "thinking",
+        "position": "left",
+        "propType": "comparison_bars",
+        "propTitle": "₹18",
+        "propMetrics": [
+          "raw green beans"
+        ]
+      },
+      {
+        "beatSummary": "Global maritime shipping and wet-mill processing",
+        "action": "walking_across",
+        "position": "center",
+        "propType": "parallel_grid",
+        "propTitle": "₹42",
+        "propMetrics": [
+          "maritime shipping",
+          "wet-mill processing"
+        ]
+      },
+      {
+        "beatSummary": "Roasting and small-batch production",
+        "action": "presenting_board",
+        "position": "right",
+        "propType": "growth_chart",
+        "propTitle": "₹65",
+        "propMetrics": [
+          "roasting",
+          "small-batch production"
+        ]
+      },
+      {
+        "beatSummary": "Final price and craft",
+        "action": "directing_swarm",
+        "position": "traverse",
+        "propType": "speed_gauge",
+        "propTitle": "₹350",
+        "propMetrics": [
+          "milk",
+          "rent",
+          "barista craft"
+        ]
+      },
+      {
+        "beatSummary": "Conclusion",
+        "action": "celebrating",
+        "position": "center",
+        "propType": "trophy_badge",
+        "propTitle": "The journey of a ₹350 cup of coffee",
+        "propMetrics": [
+          "PHASE 1",
+          "PHASE 2"
+        ]
+      }
+    ],
+    "voiceoverScript": "You'd think a ₹350 cup of coffee would be made from high-quality beans, but the truth is in the journey of the humble coffee cherry. Coffee cherries are grown by smallholder farmers in Ethiopia, who sell them for ₹18 in raw green beans. Global maritime shipping and wet-mill processing add ₹24 to the price, making it ₹42. Roasting and small-batch production lose 18% water weight, increasing the price to ₹65. The final price of ₹350 is achieved through the addition of milk, rent, and barista craft, resulting in a 65% gross margin. It's a fascinating story of economics and craftsmanship. Try a cup and taste the difference!",
+    "caption": "The journey of a ₹350 cup of coffee from ₹18 coffee cherry to expertly crafted specialty coffee."
+  }
+}

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ContentOS ? Character Project Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen font-sans">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="flex items-center justify-between border-b border-zinc-800 pb-4 mb-6">
+      <div>
+        <h1 class="text-xl font-bold tracking-tight">Character Project Studio</h1>
+        <p class="text-xs text-zinc-400">Isolated per-character identity locks, fixed seeds, and consistent shot presets</p>
+      </div>
+      <button onclick="toggleNewModal()" class="bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold px-4 py-2 rounded-lg">
+        + New Character Project
+      </button>
+    </header>
+
+    <div class="grid grid-cols-12 gap-6">
+      <aside class="col-span-4 space-y-2" id="projectList"></aside>
+      <main class="col-span-8 bg-zinc-900/60 border border-zinc-800 rounded-xl p-5" id="workspace">
+        <p class="text-sm text-zinc-400">Select a character project on the left.</p>
+      </main>
+    </div>
+  </div>
+
+  <div id="newModal" class="hidden fixed inset-0 bg-black/75 flex items-center justify-center p-4">
+    <form onsubmit="createProject(event)" class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 w-full max-w-lg space-y-3 text-xs">
+      <h2 class="text-base font-bold">Create Consistent Character Project</h2>
+      <div class="grid grid-cols-2 gap-3">
+        <input name="name" required placeholder="Character Name (e.g. Maya Lin)" class="bg-zinc-950 border border-zinc-800 rounded p-2" />
+        <input name="tagline" placeholder="Role / Niche" class="bg-zinc-950 border border-zinc-800 rounded p-2" />
+        <input name="ageRange" required value="25-year-old" placeholder="Age Range" class="bg-zinc-950 border border-zinc-800 rounded p-2" />
+        <input name="ethnicity" required value="East Asian" placeholder="Ethnicity" class="bg-zinc-950 border border-zinc-800 rounded p-2" />
+        <input name="faceShape" required value="heart-shaped with high cheekbones" placeholder="Face Shape" class="bg-zinc-950 border border-zinc-800 rounded p-2" />
+        <input name="eyeColor" required value="dark espresso" placeholder="Eye Color" class="bg-zinc-950 border border-zinc-800 rounded p-2" />
+        <input name="hairStyle" required value="sleek bob cut" placeholder="Hair Style" class="bg-zinc-950 border border-zinc-800 rounded p-2" />
+        <input name="hairColor" required value="natural black" placeholder="Hair Color" class="bg-zinc-950 border border-zinc-800 rounded p-2" />
+      </div>
+      <input name="skinTone" required value="fair neutral" placeholder="Skin Tone" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2" />
+      <input name="primaryOutfit" required value="tailored charcoal turtleneck and silver watch" placeholder="Signature Primary Outfit" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2" />
+      <input name="styleAnchor" required value="photorealistic editorial portrait, natural skin texture, 8k RAW photo" placeholder="Visual Style Anchor" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2" />
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="toggleNewModal()" class="px-3 py-1.5 rounded bg-zinc-800">Cancel</button>
+        <button type="submit" class="px-4 py-1.5 rounded bg-indigo-600 font-semibold">Create Project</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    let activeId = null;
+
+    function toggleNewModal() {
+      document.getElementById("newModal").classList.toggle("hidden");
+    }
+
+    async function loadProjects() {
+      const res = await fetch("/api/projects");
+      const { projects } = await res.json();
+      const list = document.getElementById("projectList");
+      list.innerHTML = projects.map(p => `
+        <button onclick="selectProject('${p.id}')" class="w-full text-left p-3.5 rounded-xl border ${activeId === p.id ? 'border-indigo-500 bg-zinc-900' : 'border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900'}">
+          <div class="font-semibold text-sm">${p.name}</div>
+          <div class="text-[11px] text-zinc-400">${p.tagline || p.appearance.ethnicity} ? Seed #${p.seed}</div>
+        </button>
+      `).join("");
+      if (!activeId && projects[0]) selectProject(projects[0].id);
+    }
+
+    async function selectProject(id) {
+      activeId = id;
+      const res = await fetch("/api/projects/" + id);
+      const { project, shots } = await res.json();
+      loadProjects();
+      document.getElementById("workspace").innerHTML = `
+        <div class="flex justify-between items-start border-b border-zinc-800 pb-4 mb-4">
+          <div>
+            <h2 class="text-lg font-bold">${project.name}</h2>
+            <p class="text-xs text-zinc-400">${project.appearance.ageRange} ? ${project.appearance.ethnicity} ? ${project.appearance.hairStyle} (${project.appearance.hairColor})</p>
+          </div>
+          <span class="text-[11px] font-mono bg-zinc-950 border border-zinc-800 px-2.5 py-1 rounded text-amber-400">LOCKED SEED: ${project.seed}</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-xs bg-zinc-950/70 p-3.5 rounded-lg border border-zinc-800 mb-5">
+          <div><span class="text-zinc-500">Face & Eyes:</span> ${project.appearance.faceShape}, ${project.appearance.eyeColor}</div>
+          <div><span class="text-zinc-500">Skin Tone:</span> ${project.appearance.skinTone}</div>
+          <div class="col-span-2"><span class="text-zinc-500">Signature Outfit:</span> ${project.wardrobe.primaryOutfit}</div>
+        </div>
+
+        <form onsubmit="generateShot(event)" class="flex gap-2 mb-6">
+          <select id="presetSelect" class="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs">
+            <option value="turnaround_sheet">Turnaround Reference Sheet</option>
+            <option value="editorial_portrait">Editorial Portrait</option>
+            <option value="streetwear_lifestyle">Streetwear Lifestyle</option>
+            <option value="studio_fashion">Studio Fashion Lookbook</option>
+            <option value="fitness_athletic">Fitness & Athletic</option>
+            <option value="cinematic_closeup">Cinematic Close-Up</option>
+          </select>
+          <input id="customScene" placeholder="Optional custom scene action..." class="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs" />
+          <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs font-semibold">Generate Shot</button>
+        </form>
+
+        <div class="space-y-3">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Generated Shot Prompts (${shots.length})</h3>
+          ${shots.map(s => `
+            <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs space-y-1.5">
+              <div class="flex justify-between text-[11px] text-indigo-400 font-semibold">
+                <span>${s.preset.toUpperCase()}</span>
+                <span>Seed #${s.seed}</span>
+              </div>
+              <p class="text-zinc-200 leading-relaxed">${s.positivePrompt}</p>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    async function createProject(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = {
+        name: fd.get("name"),
+        tagline: fd.get("tagline"),
+        appearance: {
+          ageRange: fd.get("ageRange"),
+          ethnicity: fd.get("ethnicity"),
+          faceShape: fd.get("faceShape"),
+          eyeColor: fd.get("eyeColor"),
+          hairStyle: fd.get("hairStyle"),
+          hairColor: fd.get("hairColor"),
+          skinTone: fd.get("skinTone"),
+          distinctiveMarks: [],
+        },
+        wardrobe: {
+          primaryOutfit: fd.get("primaryOutfit"),
+          accessories: [],
+          colorPalette: ["#0f172a", "#f8fafc", "#f59e0b"],
+        },
+        styleAnchor: fd.get("styleAnchor"),
+        negativePrompt: "inconsistent face, deformed hands, extra fingers, blurry, lowres, watermark",
+      };
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const { project } = await res.json();
+      toggleNewModal();
+      e.target.reset();
+      selectProject(project.id);
+    }
+
+    async function generateShot(e) {
+      e.preventDefault();
+      await fetch("/api/projects/" + activeId + "/shots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          preset: document.getElementById("presetSelect").value,
+          customScene: document.getElementById("customScene").value,
+        }),
+      });
+      document.getElementById("customScene").value = "";
+      selectProject(activeId);
+    }
+
+    loadProjects();
+  </script>
+</body>
+</html>

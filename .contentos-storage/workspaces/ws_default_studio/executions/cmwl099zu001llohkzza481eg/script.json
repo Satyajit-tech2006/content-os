@@ -1,0 +1,109 @@
+{
+  "title": "The Hidden Economics of a ₹350 Specialty Coffee Cup",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "How a tiny Ethiopian coffee cherry turns into a ₹350 cup with a 65% gross margin",
+    "topic": "The Hidden Economics of a ₹350 Specialty Coffee Cup",
+    "hookIdeas": [
+      "Imagine sipping on a cup of coffee that's been on a journey from Ethiopian farm to global coffee shop, with a price tag that's 19 times higher than its raw value!",
+      "The ₹350 cup you're drinking today has traveled over 10,000 miles and lost 18% of its weight in the process – what's the real story behind its price?",
+      "From ₹18 to ₹350: the astonishing economics of a single specialty coffee cup – let's crack it open!"
+    ],
+    "talkingPoints": [
+      "The coffee cherry is grown by an Ethiopian smallholder farmer and sold for ₹18 in raw green beans, a price that's often too low to cover production costs.",
+      "The coffee bean travels through wet-mill processing, which removes the outer skin and pulp, and then is shipped globally, adding significant costs.",
+      "Roasting in small batches reduces the weight of the coffee by 18%, increasing the price, and adding value through the barista's craft.",
+      "The minimalist urban café's rent, milk, and labor costs are factored into the final price, resulting in a ₹350 cup with a 65% gross margin."
+    ],
+    "targetKeywords": [
+      "specialty coffee economics",
+      "coffee cherry value chain",
+      "global coffee trade",
+      "coffee roasting costs",
+      "coffee shop profit margins",
+      "fair trade coffee"
+    ]
+  },
+  "script": {
+    "title": "The Hidden Economics of a ₹350 Specialty Coffee Cup",
+    "hook": "Imagine sipping on a cup of coffee that's been on a journey from Ethiopian farm to global coffee shop, with a price tag that's 19 times higher than its raw value!",
+    "script": "The coffee cherry is grown by an Ethiopian smallholder farmer and sold for ₹18 in raw green beans, a price that's often too low to cover production costs. The coffee bean travels through wet-mill processing, which removes the outer skin and pulp, and then is shipped globally, adding significant costs. Roasting in small batches reduces the weight of the coffee by 18%, increasing the price, and adding value through the barista's craft. The minimalist urban café's rent, milk, and labor costs are factored into the final price, resulting in a ₹350 cup with a 65% gross margin. It's a story of value creation, from ₹18 to ₹350, and it's worth exploring. So, what's the real story behind your favorite specialty coffee cup? Let's crack it open!",
+    "description": "Discover the fascinating economics behind a ₹350 specialty coffee cup. From farm to cup, find out how value is created along the way.",
+    "hashtags": [
+      "#specialtycoffeecomics",
+      "#coffeeeconomics",
+      "#fairtradecoffee",
+      "#coffeevaluechain",
+      "#globalcoffee trade"
+    ],
+    "estimatedDuration": 55,
+    "storyboard": [
+      {
+        "beatSummary": "An Ethiopian coffee farm",
+        "action": "walking_across",
+        "position": "center",
+        "propType": "blueprint_structure",
+        "propTitle": "KEY METRIC",
+        "propMetrics": [
+          "PHASE 1",
+          "PHASE 2"
+        ]
+      },
+      {
+        "beatSummary": "The coffee cherry is sold for ₹18",
+        "action": "examining_lens",
+        "position": "right",
+        "propType": "growth_chart",
+        "propTitle": "₹18",
+        "propMetrics": [
+          "raw green beans"
+        ]
+      },
+      {
+        "beatSummary": "The coffee bean travels globally",
+        "action": "presenting_board",
+        "position": "left",
+        "propType": "flow_network",
+        "propTitle": "Global Trade",
+        "propMetrics": [
+          "PHASE 1",
+          "PHASE 2"
+        ]
+      },
+      {
+        "beatSummary": "Roasting reduces weight by 18%",
+        "action": "celebrating",
+        "position": "center",
+        "propType": "trophy_badge",
+        "propTitle": "KEY METRIC",
+        "propMetrics": [
+          "PHASE 1",
+          "PHASE 2"
+        ]
+      },
+      {
+        "beatSummary": "Café's rent, milk, and labor costs",
+        "action": "juggling_tasks",
+        "position": "traverse",
+        "propType": "growth_chart",
+        "propTitle": "KEY METRIC",
+        "propMetrics": [
+          "PHASE 1",
+          "PHASE 2"
+        ]
+      },
+      {
+        "beatSummary": "₹350 cup with 65% gross margin",
+        "action": "directing_swarm",
+        "position": "right",
+        "propType": "growth_chart",
+        "propTitle": "₹350",
+        "propMetrics": [
+          "65% gross margin"
+        ]
+      }
+    ],
+    "voiceoverScript": "The coffee cherry is grown by an Ethiopian smallholder farmer and sold for ₹18 in raw green beans, a price that's often too low to cover production costs. The coffee bean travels through wet-mill processing, which removes the outer skin and pulp, and then is shipped globally, adding significant costs. Roasting in small batches reduces the weight of the coffee by 18%, increasing the price, and adding value through the barista's craft. The minimalist urban café's rent, milk, and labor costs are factored into the final price, resulting in a ₹350 cup with a 65% gross margin. It's a story of value creation, from ₹18 to ₹350, and it's worth exploring. So, what's the real story behind your favorite specialty coffee cup? Let's crack it open!",
+    "caption": "Discover the fascinating economics behind a ₹350 specialty coffee cup. From farm to cup, find out how value is created along the way."
+  }
+}

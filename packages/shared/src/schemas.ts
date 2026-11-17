@@ -15,9 +15,12 @@ export const DurationRangeSchema = z.enum([
 export type DurationRange = z.infer<typeof DurationRangeSchema>;
 
 export const VideoStyleSchema = z.enum([
-  "isometric_tech", "stock_ken_burns",
+  "isometric_tech",
   "stickman_explainer",
   "minimal_line_art",
+  "phonk_montage_edit",
+  "stock_ken_burns",
+  "product_review_showcase",
   "kinetic_typography",
   "tech_hud_blueprint",
 ]);

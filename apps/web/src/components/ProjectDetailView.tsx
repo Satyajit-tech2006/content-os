@@ -165,11 +165,11 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
                   <label className="block text-[11px] text-zinc-500 mb-1">Visual Video Style</label>
                   <select value={videoStyle} onChange={(e) => setVideoStyle(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-200">
                     <option value="isometric_tech">0. Isometric Tech Motion Graphics (3D Explainers)</option>
-                  <option value="stock_ken_burns">1. Stock Media + Ken Burns</option>
-                    <option value="stickman_explainer">2. Stickman Animation</option>
-                    <option value="minimal_line_art">3. Minimal Line-Art & Effects</option>
-                    <option value="kinetic_typography">4. Kinetic Typography</option>
-                    <option value="tech_hud_blueprint">5. Tech HUD / Blueprint</option>
+                    <option value="stickman_explainer">1. Stickman Animation (Story-Driven Dynamic)</option>
+                    <option value="minimal_line_art">2. Normal Lines Info Reels (Clean Vector Motion)</option>
+                    <option value="phonk_montage_edit">3. Anime &amp; Phonk Montage Edits</option>
+                    <option value="stock_ken_burns">4. Stock Image Info Reels</option>
+                    <option value="product_review_showcase">5. Product Review &amp; Model Showcase (e.g. Casio Watch)</option>
                   </select>
                 </div>
             <div>

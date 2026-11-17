@@ -27,8 +27,8 @@ export const StoryboardBeatSchema = z.object({
       "trophy_badge",
     ])
     .default("growth_chart"),
-  propTitle: z.string().min(2).max(36),
-  propMetrics: z.array(z.string().min(1).max(28)).min(1).max(4).default(["STEP 1", "STEP 2"]),
+  propTitle: z.preprocess((v) => { const str = typeof v === "string" ? v.trim() : ""; return str.length >= 2 ? str.slice(0, 36) : "KEY METRIC"; }, z.string().min(2).max(36)),
+  propMetrics: z.preprocess((v) => { const raw = Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,;|\n]+/) : []; const cleaned = raw.map((x) => String(x ?? "").trim().slice(0, 28)).filter(Boolean).slice(0, 4); return cleaned.length > 0 ? cleaned : ["PHASE 1", "PHASE 2"]; }, z.array(z.string().min(1).max(28)).min(1).max(4))
 });
 
 export type StoryboardBeat = z.infer<typeof StoryboardBeatSchema>;
