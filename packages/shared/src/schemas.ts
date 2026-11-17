@@ -6,6 +6,23 @@ export type WorkspaceRole = z.infer<typeof WorkspaceRoleSchema>;
 export const ProjectStatusSchema = z.enum(["ACTIVE", "PAUSED", "ARCHIVED"]);
 export type ProjectStatus = z.infer<typeof ProjectStatusSchema>;
 
+export const DurationRangeSchema = z.enum([
+  "15-20s",
+  "30-45s",
+  "45-60s",
+  "60s+",
+]);
+export type DurationRange = z.infer<typeof DurationRangeSchema>;
+
+export const VideoStyleSchema = z.enum([
+  "stock_ken_burns",
+  "stickman_explainer",
+  "minimal_line_art",
+  "kinetic_typography",
+  "tech_hud_blueprint",
+]);
+export type VideoStyle = z.infer<typeof VideoStyleSchema>;
+
 export const ContentFormatSchema = z.enum([
   "short_video",
   "long_video",
@@ -77,6 +94,8 @@ export const ProjectConfigSchema = z
     language: z.string().max(20).default("en"),
     aspectRatio: z.enum(["9:16", "16:9", "1:1"]).default("9:16"),
     targetDurationSec: z.number().int().min(10).max(3600).default(45),
+    durationRange: DurationRangeSchema.default("30-45s"),
+    videoStyle: VideoStyleSchema.default("stock_ken_burns"),
     brandGuidelines: z.string().max(1000).optional(),
     customRules: z.record(z.unknown()).optional(),
   })
@@ -121,7 +140,9 @@ export const WorkflowStageDefinitionSchema = z.object({
 export type WorkflowStageDefinition = z.infer<typeof WorkflowStageDefinitionSchema>;
 
 export const TriggerExecutionSchema = z.object({
-  topic: z.string().trim().max(200).optional(),
+  topic: z.string().trim().max(1000).optional(),
+  durationRange: DurationRangeSchema.optional(),
+  videoStyle: VideoStyleSchema.optional(),
   simulateFailureAtStage: StageKeySchema.optional(),
   metadata: z.record(z.unknown()).optional(),
 });

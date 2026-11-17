@@ -24,6 +24,8 @@ export function ProjectModal({ workspaceId, templates, initialProject, onClose, 
   const [tone, setTone] = useState(String(initialProject?.config?.tone ?? "engaging"));
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9" | "1:1">((initialProject?.config?.aspectRatio as "9:16" | "16:9" | "1:1") ?? "9:16");
   const [targetDurationSec, setTargetDurationSec] = useState(Number(initialProject?.config?.targetDurationSec ?? 45));
+  const [durationRange, setDurationRange] = useState(String(initialProject?.config?.durationRange ?? "30-45s"));
+  const [videoStyle, setVideoStyle] = useState(String(initialProject?.config?.videoStyle ?? "stock_ken_burns"));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -39,7 +41,7 @@ export function ProjectModal({ workspaceId, templates, initialProject, onClose, 
       const payload = {
         name, description, niche, targetAudience, contentFormat, platforms,
         postingFrequency: Number(postingFrequency), workflowTemplateId, approvalRequired, automationEnabled,
-        config: { tone, language: "en", aspectRatio, targetDurationSec: Number(targetDurationSec) },
+        config: { tone, language: "en", aspectRatio, targetDurationSec: Number(targetDurationSec), durationRange, videoStyle },
       };
       if (isEdit && initialProject) {
         await apiFetch("/workspaces/" + workspaceId + "/projects/" + initialProject.id, { method: "PATCH", body: JSON.stringify(payload) });
@@ -113,14 +115,29 @@ export function ProjectModal({ workspaceId, templates, initialProject, onClose, 
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">Target Length (sec)</label>
-              <input type="number" min={10} max={3600} value={targetDurationSec} onChange={(e) => setTargetDurationSec(Number(e.target.value))} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5">Duration Range</label>
+              <select value={durationRange} onChange={(e) => setDurationRange(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none">
+                <option value="15-20s">15?20 sec</option>
+                <option value="30-45s">30?45 sec</option>
+                <option value="45-60s">45?60 sec</option>
+                <option value="60s+">60s+</option>
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1.5">Editorial Tone</label>
               <input value={tone} onChange={(e) => setTone(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5">Default Video Visual Style</label>
+              <select value={videoStyle} onChange={(e) => setVideoStyle(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none">
+                <option value="stock_ken_burns">1. Stock Media + Ken Burns</option>
+                <option value="stickman_explainer">2. Stickman Animation</option>
+                <option value="minimal_line_art">3. Minimal Line-Art & Effects</option>
+                <option value="kinetic_typography">4. Kinetic Typography</option>
+                <option value="tech_hud_blueprint">5. Tech HUD / Blueprint</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1.5">Content Format</label>

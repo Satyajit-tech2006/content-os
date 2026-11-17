@@ -1,3 +1,5 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -19,7 +21,7 @@ import { requireAuth } from "./middleware/auth.js";
 export function createApp(): Express {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(
     cors({
       origin: env.WEB_ORIGIN,
@@ -36,6 +38,9 @@ export function createApp(): Express {
     standardHeaders: true,
     legacyHeaders: false,
   });
+
+  const storageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../.contentos-storage");
+  app.use("/media", express.static(storageDir));
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", service: "contentos-api", timestamp: new Date().toISOString() });

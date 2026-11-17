@@ -1,4 +1,5 @@
 import { storeArtifact } from "./lib/storage.js";
+import { synthesizeVoiceoverMp3, renderVerticalVideoMp4 } from "./lib/mediaRenderer.js";
 import { Queue } from "bullmq";
 import { prisma, type Prisma } from "@contentos/database";
 import { AIOrchestrator, AIProviderFactory } from "@contentos/ai-provider";
@@ -184,6 +185,162 @@ export async function processWorkflowStageJob(
       orchestrator,
       log,
     });
+
+
+    // Stage 3 (media_production): synthesize real MP3 voiceover via msedge-tts and register AUDIO asset
+    if (stageKey === "media_production") {
+      const mergedNow = { ...previousOutputs, ...result.output };
+      const scriptData = (mergedNow.script as Record<string, unknown> | undefined) ?? {};
+      const title = typeof scriptData.title === "string" && scriptData.title.trim()
+        ? scriptData.title.trim()
+        : execution.project.name;
+      const hook = typeof scriptData.hook === "string" ? scriptData.hook.trim() : "";
+      const body = typeof scriptData.voiceoverScript === "string"
+        ? scriptData.voiceoverScript
+        : typeof scriptData.script === "string"
+          ? scriptData.script
+          : "";
+      const narrationText = body && hook && body.toLowerCase().includes(hook.toLowerCase().slice(0, 20)) ? body : [hook, body].filter(Boolean).join(". ");
+      const audioStorageKey = `workspaces/${workspaceId}/executions/${executionId}/voiceover.mp3`;
+
+      log("info", "Synthesizing neural TTS voiceover MP3 via msedge-tts...");
+      const aspectRatioVal = String((execution.project.config as Record<string, unknown>)?.aspectRatio ?? "9:16");
+      const audioOut = await synthesizeVoiceoverMp3({
+        storageKey: audioStorageKey,
+        text: narrationText,
+        tone: String(runtimeInputContext.tone ?? (execution.project.config as Record<string, unknown>)?.tone ?? "engaging"),
+        aspectRatio: aspectRatioVal,
+      });
+      log("info", `Voiceover MP3 synthesized (${audioOut.bytes} bytes, ${audioOut.durationSec}s via ${audioOut.engine})`);
+
+      result.output = {
+        ...result.output,
+        audioAsset: {
+          storageKey: audioStorageKey,
+          mediaUrl: `/media/${audioStorageKey}`,
+          mimeType: "audio/mpeg",
+          bytes: audioOut.bytes,
+          durationSec: audioOut.durationSec,
+          engine: audioOut.engine,
+        },
+      };
+
+      await prisma.contentAsset.upsert({
+        where: { storageKey: audioStorageKey },
+        update: {
+          fileName: (title + " (Voiceover)").slice(0, 120),
+          fileSize: BigInt(audioOut.bytes),
+          status: "READY",
+          metadata: {
+            title: title + " (Voiceover)",
+            mediaUrl: `/media/${audioStorageKey}`,
+            durationSec: audioOut.durationSec,
+            engine: audioOut.engine,
+          } as Prisma.InputJsonValue,
+        },
+        create: {
+          workspaceId,
+          projectId: execution.projectId,
+          executionId,
+          type: "AUDIO",
+          fileName: (title + " (Voiceover)").slice(0, 120),
+          mimeType: "audio/mpeg",
+          fileSize: BigInt(audioOut.bytes),
+          storageKey: audioStorageKey,
+          status: "READY",
+          approvalStatus: execution.project.approvalRequired ? "PENDING_APPROVAL" : "APPROVED",
+          currentRevisionNum: execution.activeRevisionNum,
+          metadata: {
+            title: title + " (Voiceover)",
+            mediaUrl: `/media/${audioStorageKey}`,
+            durationSec: audioOut.durationSec,
+            engine: audioOut.engine,
+          } as Prisma.InputJsonValue,
+        },
+      });
+    }
+
+    // Stage 4 (video_rendering): render real 1080x1920 MP4 via ffmpeg-static and register RENDERED_VIDEO asset
+    if (stageKey === "video_rendering") {
+      const mergedNow = { ...previousOutputs, ...result.output };
+      const scriptData = (mergedNow.script as Record<string, unknown> | undefined) ?? {};
+      const title = typeof scriptData.title === "string" && scriptData.title.trim()
+        ? scriptData.title.trim()
+        : execution.project.name;
+      const hook = typeof scriptData.hook === "string" ? scriptData.hook.trim() : "";
+      const body = typeof scriptData.voiceoverScript === "string"
+        ? scriptData.voiceoverScript
+        : typeof scriptData.script === "string"
+          ? scriptData.script
+          : "";
+      const audioStorageKey = `workspaces/${workspaceId}/executions/${executionId}/voiceover.mp3`;
+      const videoStorageKey = `workspaces/${workspaceId}/executions/${executionId}/master.mp4`;
+
+      log("info", "Rendering vertical H.264 MP4 video with synced captions via ffmpeg-static...");
+      const videoOut = await renderVerticalVideoMp4({
+        videoStorageKey,
+        audioStorageKey,
+        channelName: execution.project.name,
+        title,
+        hook,
+        script: body,
+        keywords: Array.isArray(scriptData.hashtags) ? scriptData.hashtags.filter((h): h is string => typeof h === "string") : [],
+        storyboard: Array.isArray(scriptData.storyboard) ? scriptData.storyboard : undefined,
+        timedCaptions: Array.isArray(mergedNow.timedCaptions) ? (mergedNow.timedCaptions as any) : undefined,
+        aspectRatio: String((execution.project.config as Record<string, unknown>)?.aspectRatio ?? "9:16"),
+        videoStyle: (runtimeInputContext.videoStyle ?? (execution.project.config as Record<string, unknown>)?.videoStyle ?? "stock_ken_burns") as any,
+      });
+      log("info", `Rendered MP4 complete (${videoOut.resolution}, ${videoOut.durationSec}s, ${videoOut.bytes} bytes)`);
+
+      result.output = {
+        ...result.output,
+        renderedMedia: {
+          storageKey: videoStorageKey,
+          mediaUrl: `/media/${videoStorageKey}`,
+          mimeType: "video/mp4",
+          durationSec: videoOut.durationSec,
+          resolution: videoOut.resolution,
+          bytes: videoOut.bytes,
+          renderMode: "ffmpeg_local_v1",
+        },
+      };
+
+      await prisma.contentAsset.upsert({
+        where: { storageKey: videoStorageKey },
+        update: {
+          fileName: (title + " (Master Video)").slice(0, 120),
+          fileSize: BigInt(videoOut.bytes),
+          status: "READY",
+          metadata: {
+            title: title + " (Master Video)",
+            mediaUrl: `/media/${videoStorageKey}`,
+            audioUrl: `/media/${audioStorageKey}`,
+            durationSec: videoOut.durationSec,
+            resolution: videoOut.resolution,
+          } as Prisma.InputJsonValue,
+        },
+        create: {
+          workspaceId,
+          projectId: execution.projectId,
+          executionId,
+          type: "RENDERED_VIDEO",
+          fileName: (title + " (Master Video)").slice(0, 120),
+          mimeType: "video/mp4",
+          fileSize: BigInt(videoOut.bytes),
+          storageKey: videoStorageKey,
+          status: "READY",
+          approvalStatus: execution.project.approvalRequired ? "PENDING_APPROVAL" : "APPROVED",
+          currentRevisionNum: execution.activeRevisionNum,
+          metadata: {
+            title: title + " (Master Video)",
+            mediaUrl: `/media/${videoStorageKey}`,
+            audioUrl: `/media/${audioStorageKey}`,
+            durationSec: videoOut.durationSec,
+            resolution: videoOut.resolution,
+          } as Prisma.InputJsonValue,
+        },
+      });
+    }
 
     // If script_generation succeeded, persist immutable ContentRevision + SCRIPT ContentAsset immediately
     if (stageKey === "script_generation") {

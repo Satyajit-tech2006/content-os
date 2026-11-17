@@ -52,13 +52,23 @@ export class ResearchStageHandler implements WorkflowStageHandler {
   }
 }
 
+function resolveDurationRangeGuidance(rangeRaw: unknown, fallbackSec: number): { durationRange: string; desiredDuration: number; wordBudget: string } {
+  const r = typeof rangeRaw === "string" ? rangeRaw : "";
+  if (r === "15-20s") return { durationRange: "15-20s", desiredDuration: 18, wordBudget: "38-52 words (3-4 punchy sentences)" };
+  if (r === "30-45s") return { durationRange: "30-45s", desiredDuration: 38, wordBudget: "75-110 words (5-7 concise sentences)" };
+  if (r === "45-60s") return { durationRange: "45-60s", desiredDuration: 52, wordBudget: "110-145 words (7-9 clear sentences)" };
+  if (r === "60s+") return { durationRange: "60s+", desiredDuration: 75, wordBudget: "150-210 words (9-13 well-paced sentences)" };
+  return { durationRange: `~${fallbackSec}s`, desiredDuration: fallbackSec, wordBudget: `${Math.round(fallbackSec * 2.2)}-${Math.round(fallbackSec * 2.6)} words` };
+}
+
 export class ScriptGenerationStageHandler implements WorkflowStageHandler {
   readonly key = "script_generation" as const;
 
   async execute(ctx: StageExecutionContext): Promise<StageExecutionResult> {
     checkSimulatedFailure(ctx);
     const brief = ctx.previousOutputs.researchBrief as ValidatedContentIdeasOutput | undefined;
-    const desiredDuration = Number(ctx.inputContext.desiredDuration ?? ctx.project.config.targetDurationSec ?? 45);
+    const guidance = resolveDurationRangeGuidance(ctx.inputContext.durationRange ?? ctx.project.config.durationRange, Number(ctx.project.config.targetDurationSec ?? 45));
+    const desiredDuration = guidance.desiredDuration;
     const contentPlatform = String(ctx.inputContext.contentPlatform ?? ctx.project.platforms.join(", "));
     const tone = String(ctx.inputContext.tone ?? ctx.project.config.tone ?? "engaging");
     const language = String(ctx.inputContext.language ?? ctx.project.config.language ?? "English");
@@ -79,6 +89,8 @@ export class ScriptGenerationStageHandler implements WorkflowStageHandler {
         targetAudience: ctx.inputContext.targetAudience ?? ctx.project.targetAudience,
         contentPlatform,
         desiredDuration,
+        durationRange: guidance.durationRange,
+        wordBudget: guidance.wordBudget,
         tone,
         language,
         editorialBrief: brief,

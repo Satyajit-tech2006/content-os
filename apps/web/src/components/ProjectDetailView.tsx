@@ -13,6 +13,8 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
   const [project, setProject] = useState<ProjectDTO | null>(null);
   const [selectedExecId, setSelectedExecId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
+  const [durationRange, setDurationRange] = useState<string>("30-45s");
+  const [videoStyle, setVideoStyle] = useState<string>("stock_ken_burns");
   const [simulateFailureAtStage, setSimulateFailureAtStage] = useState("");
   const [triggering, setTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +51,8 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
           method: "POST",
           body: JSON.stringify({
             topic: topic.trim() || undefined,
+            durationRange,
+            videoStyle,
             simulateFailureAtStage: simulateFailureAtStage || undefined,
           }),
         }
@@ -144,7 +148,28 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
           <div className="border-t border-zinc-800 pt-4">
             <h3 className="text-xs font-semibold text-zinc-300 mb-2.5">Trigger Workflow Run (BullMQ Worker)</h3>
             <form onSubmit={handleRunWorkflow} className="space-y-3">
-              <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Optional topic / angle override..." className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+              <textarea rows={2} value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Topic or detailed prompt angle..." className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div>
+                  <label className="block text-[11px] text-zinc-500 mb-1">Duration Range</label>
+                  <select value={durationRange} onChange={(e) => setDurationRange(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-200">
+                    <option value="15-20s">15?20 sec (Snappy Short)</option>
+                    <option value="30-45s">30?45 sec (Standard Reel)</option>
+                    <option value="45-60s">45?60 sec (Deep Explainer)</option>
+                    <option value="60s+">60s+ (Extended Story)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-zinc-500 mb-1">Visual Video Style</label>
+                  <select value={videoStyle} onChange={(e) => setVideoStyle(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-200">
+                    <option value="stock_ken_burns">1. Stock Media + Ken Burns</option>
+                    <option value="stickman_explainer">2. Stickman Animation</option>
+                    <option value="minimal_line_art">3. Minimal Line-Art & Effects</option>
+                    <option value="kinetic_typography">4. Kinetic Typography</option>
+                    <option value="tech_hud_blueprint">5. Tech HUD / Blueprint</option>
+                  </select>
+                </div>
+              </div>
               <div>
                 <label className="block text-[11px] text-zinc-500 mb-1">Test Failure Handling (Optional)</label>
                 <select value={simulateFailureAtStage} onChange={(e) => setSimulateFailureAtStage(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-300">

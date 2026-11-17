@@ -1,6 +1,38 @@
 import { z } from "zod";
 import type { AITaskType } from "../types.js";
 
+export const StoryboardBeatSchema = z.object({
+  beatSummary: z.string().min(2).max(80),
+  action: z
+    .enum([
+      "thinking",
+      "walking_across",
+      "presenting_board",
+      "directing_swarm",
+      "juggling_tasks",
+      "examining_lens",
+      "celebrating",
+    ])
+    .default("presenting_board"),
+  position: z.enum(["left", "center", "right", "traverse"]).default("left"),
+  propType: z
+    .enum([
+      "comparison_bars",
+      "parallel_grid",
+      "flow_network",
+      "growth_chart",
+      "blueprint_structure",
+      "speed_gauge",
+      "magnifying_lens",
+      "trophy_badge",
+    ])
+    .default("growth_chart"),
+  propTitle: z.string().min(2).max(36),
+  propMetrics: z.array(z.string().min(1).max(28)).min(1).max(4).default(["STEP 1", "STEP 2"]),
+});
+
+export type StoryboardBeat = z.infer<typeof StoryboardBeatSchema>;
+
 export const GeneratedScriptSchema = z.object({
   title: z.string().min(3).max(160),
   hook: z.string().min(5).max(320),
@@ -8,6 +40,7 @@ export const GeneratedScriptSchema = z.object({
   description: z.string().min(5).max(1000),
   hashtags: z.array(z.string().min(1)).min(1).max(15),
   estimatedDuration: z.number().int().min(5).max(600),
+  storyboard: z.array(StoryboardBeatSchema).min(2).max(8).optional(),
 });
 
 export type ValidatedScriptOutput = z.infer<typeof GeneratedScriptSchema>;
@@ -119,17 +152,17 @@ export class PromptRegistry {
     this.register({
       id: "short-form-script-generator",
       version: "1.0.0",
-      description: "Generates a complete short-form video script with hook, narration body, description, hashtags, and duration estimate.",
+      description: "Generates a complete short-form video script with hook, narration body, description, hashtags, duration estimate, and dynamic storyboard.",
       task: "script_generation",
       active: true,
-      systemPrompt: "You are an elite short-form video scriptwriter. Output ONLY valid JSON matching the exact schema keys requested. No markdown fences or commentary.",
+      systemPrompt: "You are an elite short-form video scriptwriter and visual director. Output ONLY valid JSON matching the exact schema keys requested. No markdown fences or commentary.",
       renderTemplate: (vars) => [
         "Create a complete video script with the following parameters:",
         "- Channel / Project: " + String(vars.projectName ?? "Creator Channel"),
         "- Topic: " + String(vars.topic ?? "Industry breakdown"),
         "- Target Audience: " + String(vars.targetAudience ?? "General audience"),
         "- Content Platform: " + String(vars.contentPlatform ?? "YouTube Shorts / Instagram Reels"),
-        "- Desired Duration (seconds): " + String(vars.desiredDuration ?? 45),
+        "- Target Duration Range: " + String(vars.durationRange ?? "30-45s") + " (word budget: " + String(vars.wordBudget ?? "75-110 words") + "). Finish every thought cleanly with a complete outro/CTA within this range; NEVER include timestamps like (0s-3s) or [Visual:] cues inside the spoken script.",
         "- Tone: " + String(vars.tone ?? "engaging and clear"),
         "- Language: " + String(vars.language ?? "English"),
         vars.editorialBrief ? "- Editorial Brief Context: " + JSON.stringify(vars.editorialBrief) : "",
@@ -140,7 +173,10 @@ export class PromptRegistry {
         "  \"script\": string (complete spoken voiceover narration from start to CTA),",
         "  \"description\": string (social post caption/description),",
         "  \"hashtags\": string[] (4-8 relevant hashtags starting with #),",
-        "  \"estimatedDuration\": number (integer seconds matching pacing)",
+        "  \"estimatedDuration\": number (integer seconds matching pacing),",
+        "  \"storyboard\": [ (3-6 dynamic visual scenes matching each part of the script)",
+        "    { \"beatSummary\": string, \"action\": \"thinking\"|\"walking_across\"|\"presenting_board\"|\"directing_swarm\"|\"juggling_tasks\"|\"examining_lens\"|\"celebrating\", \"position\": \"left\"|\"center\"|\"right\"|\"traverse\", \"propType\": \"comparison_bars\"|\"parallel_grid\"|\"flow_network\"|\"growth_chart\"|\"blueprint_structure\"|\"speed_gauge\"|\"magnifying_lens\"|\"trophy_badge\", \"propTitle\": string, \"propMetrics\": string[] }",
+        "  ]",
         "}"
       ].filter(Boolean).join("\n"),
       outputSchema: GeneratedScriptSchema,

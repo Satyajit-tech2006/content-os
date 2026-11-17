@@ -25,7 +25,7 @@ const worker = new Worker<StageJobPayload>(
   },
   {
     connection: connection as never,
-    concurrency: 5,
+    concurrency: 1,
   }
 );
 

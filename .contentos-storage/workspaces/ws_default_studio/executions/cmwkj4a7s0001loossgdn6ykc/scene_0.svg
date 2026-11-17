@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920">
+            <rect width="100%" height="100%" fill="#11131a"/>
+            <circle cx="540" cy="656" r="58" fill="none" stroke="#f8fafc" stroke-width="10"/>
+            <circle cx="522" cy="646" r="6" fill="#f8fafc"/>
+            <circle cx="558" cy="646" r="6" fill="#f8fafc"/>
+            <path d="M 520 674 Q 540 691 560 674" fill="none" stroke="#818cf8" stroke-width="7" stroke-linecap="round"/>
+            <line x1="540" y1="714" x2="540" y2="896" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"/>
+            <line x1="540" y1="761" x2="415" y2="756" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"/>
+            <line x1="540" y1="761" x2="675" y2="896" stroke="#818cf8" stroke-width="10" stroke-linecap="round"/>
+            <line x1="540" y1="896" x2="450" y2="1036" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"/>
+            <line x1="540" y1="896" x2="630" y2="1036" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"/>
+            <rect x="330" y="1071" width="420" height="58" rx="14" fill="#1e293b" stroke="#818cf8" stroke-width="3"/>
+            <text x="540" y="1109" font-family="Segoe UI, Arial" font-size="28" font-weight="bold" fill="#f8fafc" text-anchor="middle">GPUPOWERAI</text>
+          </svg>
