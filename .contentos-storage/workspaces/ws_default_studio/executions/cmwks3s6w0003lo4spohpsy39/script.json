@@ -1,0 +1,89 @@
+{
+  "title": "The Semicolon of Despair: Why One Tiny Mistake Can Haunt You All Night Long",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "The Unspoken Struggle of Coding: Why Missing Semicolons Keep Developers Up All Night",
+    "topic": "The All-Nighter's Dilemma: Why Developers Can't Resist the Semicolon Siren",
+    "hookIdeas": [
+      "The Semicolon of Despair: Why One Tiny Mistake Can Haunt You All Night Long",
+      "When Semicolons Become the Ultimate Coding Kryptonite",
+      "The Great Semicolon Escape: How One Fix Can Bring Peace to the Coding World"
+    ],
+    "talkingPoints": [
+      "The importance of semicolons in programming: why they're not just a punctuation mark",
+      "The psychological impact of coding mistakes: how a single missing semicolon can affect your sanity",
+      "The power of debugging: how a fresh perspective can help you solve even the toughest coding conundrums",
+      "The benefits of a well-written codebase: how semicolons can improve your code's readability and maintainability"
+    ],
+    "targetKeywords": [
+      "developers and semicolons",
+      "coding mistakes and stress",
+      "debugging and problem-solving",
+      "semicolons in programming",
+      "code readability and maintainability"
+    ]
+  },
+  "script": {
+    "title": "The Semicolon of Despair: Why One Tiny Mistake Can Haunt You All Night Long",
+    "hook": "Staring at the screen, the clock ticks away, as the world outside sleeps, but I'm wide awake, fighting the coding demons.",
+    "script": "Imagine being on the edge, staring at a single line of code, the cursor blinking menacingly, waiting for that one mistake to ruin the whole night. It's the missing semicolon, the final straw, that makes you question everything. But what if that one tiny mistake is actually the solution? Join me as I take you on a journey from the depths of despair to the thrill of victory, as we explore the power of debugging and the importance of semicolons in programming.",
+    "description": "Ever found yourself stuck in a coding rut, haunted by the ghosts of missing semicolons? Join us on a journey to uncover the secrets behind the all-nighter's dilemma and discover the benefits of a well-written codebase.",
+    "hashtags": [
+      "#developersandsemicolons",
+      "#codingmistakesandstress",
+      "#debuggingandproblemsolving",
+      "#semicolonsinprogramming",
+      "#coderlife",
+      "#code readabilityandmaintainability"
+    ],
+    "estimatedDuration": 55,
+    "storyboard": [
+      {
+        "beatSummary": "Staring at the screen, the clock ticks away",
+        "action": "thinking",
+        "position": "left",
+        "propType": "comparison_bars",
+        "propTitle": "Code",
+        "propMetrics": [
+          "lines of code",
+          "clock ticking"
+        ]
+      },
+      {
+        "beatSummary": "Walking out into the night",
+        "action": "walking_across",
+        "position": "traverse",
+        "propType": "parallel_grid",
+        "propTitle": "City",
+        "propMetrics": [
+          "streetlights",
+          "nighttime"
+        ]
+      },
+      {
+        "beatSummary": "Returning to the desk, a new perspective",
+        "action": "presenting_board",
+        "position": "center",
+        "propType": "growth_chart",
+        "propTitle": "Code",
+        "propMetrics": [
+          "code compilation",
+          "error-free"
+        ]
+      },
+      {
+        "beatSummary": "Celebrating the victory",
+        "action": "celebrating",
+        "position": "right",
+        "propType": "trophy_badge",
+        "propTitle": "Developer",
+        "propMetrics": [
+          "confetti",
+          "triumph"
+        ]
+      }
+    ],
+    "voiceoverScript": "Imagine being on the edge, staring at a single line of code, the cursor blinking menacingly, waiting for that one mistake to ruin the whole night. It's the missing semicolon, the final straw, that makes you question everything. But what if that one tiny mistake is actually the solution? Join me as I take you on a journey from the depths of despair to the thrill of victory, as we explore the power of debugging and the importance of semicolons in programming.",
+    "caption": "Ever found yourself stuck in a coding rut, haunted by the ghosts of missing semicolons? Join us on a journey to uncover the secrets behind the all-nighter's dilemma and discover the benefits of a well-written codebase."
+  }
+}

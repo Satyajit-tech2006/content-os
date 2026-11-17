@@ -324,264 +324,314 @@ router.post(
         throw new ValidationError("Revision feedback comment is required when requesting revisions");
       }
 
-      const txResult = await prisma.$transaction(async (tx) => {
-        const asset = await tx.contentAsset.findFirst({
-          where: { id: assetId, workspaceId },
-          include: {
-            revisions: { orderBy: { revisionNumber: "desc" } },
-          },
-        });
+      const asset = await prisma.contentAsset.findFirst({
+        where: { id: assetId, workspaceId },
+        include: {
+          revisions: { orderBy: { revisionNumber: "desc" } },
+        },
+      });
 
-        if (!asset) {
-          throw new NotFoundError("Content asset");
-        }
-        if (!asset.executionId) {
-          throw new ValidationError("Content asset is not linked to a workflow execution");
-        }
+      if (!asset) {
+        throw new NotFoundError("Content asset");
+      }
 
-        const execution = await tx.workflowExecution.findFirst({
-          where: { id: asset.executionId, workspaceId },
-          include: {
-            stages: { orderBy: { stageOrder: "asc" } },
-          },
-        });
+      const prevMeta = (asset.metadata && typeof asset.metadata === "object"
+        ? asset.metadata
+        : {}) as Record<string, unknown>;
+      const prevScript = (prevMeta.script && typeof prevMeta.script === "object"
+        ? prevMeta.script
+        : {}) as Record<string, unknown>;
 
-        if (!execution) {
-          throw new NotFoundError("Workflow execution");
-        }
+      // Ensure a ContentRevision always exists (even for RENDERED_VIDEO assets)
+      let targetRevision = input.revisionId
+        ? asset.revisions.find((r) => r.id === input.revisionId)
+        : asset.revisions[0];
 
-        // Strict state guard: only AWAITING_APPROVAL executions can be reviewed
-        if (execution.status !== "AWAITING_APPROVAL") {
-          throw new AppError("Workflow execution is in status '" + execution.status + "' and is not awaiting approval", 409, "CONFLICT");
-        }
-
-        const targetRevision = input.revisionId
-          ? asset.revisions.find((r) => r.id === input.revisionId)
-          : asset.revisions[0];
-
-        if (!targetRevision) {
-          throw new ValidationError("No content revision found to review");
-        }
-        if (targetRevision.revisionNumber !== asset.currentRevisionNum) {
-          throw new AppError("Cannot review a superseded revision; review the latest revision instead", 409, "CONFLICT");
-        }
-
-        // Atomic CAS guard to prevent concurrent double-approval race conditions
-        const nextExecStatus = input.decision === "REJECTED" ? "REJECTED" : "RUNNING";
-        const nextActiveRev =
-          input.decision === "REVISION_REQUESTED"
-            ? execution.activeRevisionNum + 1
-            : execution.activeRevisionNum;
-
-        const claimed = await tx.workflowExecution.updateMany({
-          where: {
-            id: execution.id,
-            workspaceId,
-            status: "AWAITING_APPROVAL",
-          },
-          data: {
-            status: nextExecStatus,
-            activeRevisionNum: nextActiveRev,
-            approvedRevisionId: input.decision === "APPROVED" ? targetRevision.id : null,
-            ...(input.decision === "REJECTED" ? { completedAt: new Date() } : {}),
-          },
-        });
-
-        if (claimed.count === 0) {
-          throw new AppError("Approval decision was already submitted for this execution", 409, "CONFLICT");
-        }
-
-        const decisionRecord = await tx.approvalDecision.create({
+      if (!targetRevision) {
+        targetRevision = await prisma.contentRevision.create({
           data: {
             workspaceId,
             projectId: asset.projectId,
-            executionId: execution.id,
+            executionId: asset.executionId,
             assetId: asset.id,
-            revisionId: targetRevision.id,
-            reviewerId: req.user!.id,
-            decision: input.decision,
-            comment: input.comment?.trim() || null,
-            idempotencyKey: input.idempotencyKey ?? null,
+            revisionNumber: Math.max(1, asset.currentRevisionNum || 1),
+            source: "AI_GENERATED",
+            title: String(prevScript.title || prevMeta.title || asset.fileName),
+            hook: typeof prevScript.hook === "string" ? prevScript.hook : null,
+            voiceoverScript: typeof prevScript.voiceoverScript === "string"
+              ? prevScript.voiceoverScript
+              : typeof prevScript.script === "string"
+                ? prevScript.script
+                : asset.fileName,
+            description: typeof prevScript.description === "string" ? prevScript.description : null,
+            hashtags: Array.isArray(prevScript.hashtags)
+              ? prevScript.hashtags.filter((h): h is string => typeof h === "string")
+              : [],
+            scriptPayload: prevScript as Prisma.InputJsonValue,
+            createdByUserId: req.user!.id,
           },
         });
-
-        const prevMeta = (asset.metadata && typeof asset.metadata === "object"
-          ? asset.metadata
-          : {}) as Record<string, unknown>;
-
-        const nextApprovalStatus =
-          input.decision === "APPROVED"
-            ? "APPROVED"
-            : input.decision === "REJECTED"
-              ? "REJECTED"
-              : "REVISION_REQUESTED";
-
-        await tx.contentAsset.update({
-          where: { id: asset.id },
-          data: {
-            approvalStatus: nextApprovalStatus,
-            approvedRevisionId: input.decision === "APPROVED" ? targetRevision.id : null,
-            metadata: {
-              ...prevMeta,
-              approvalStatus: nextApprovalStatus,
-              lastDecision: input.decision,
-              lastReviewedBy: req.user?.email,
-              lastReviewedAt: new Date().toISOString(),
-            } as Prisma.InputJsonValue,
-          },
-        });
-
-        const approvalStage = execution.stages.find((s) => s.stageKey === "approval");
-        let outboxEventId: string | null = null;
-
-        if (input.decision === "APPROVED") {
-          if (approvalStage) {
-            await tx.workflowStageExecution.update({
-              where: { id: approvalStage.id },
-              data: {
-                status: "COMPLETED",
-                completedAt: new Date(),
-              },
-            });
-          }
-
-          const nextStageOrder = approvalStage
-            ? approvalStage.stageOrder + 1
-            : execution.currentStageIndex + 1;
-          const nextStage = execution.stages.find((s) => s.stageOrder === nextStageOrder);
-
-          if (nextStage) {
-            const outboxKey = `exec_${execution.id}_approve_rev_${targetRevision.id}`;
-            const outbox = await tx.outboxEvent.upsert({
-              where: { idempotencyKey: outboxKey },
-              update: {},
-              create: {
-                workspaceId,
-                eventType: "WORKFLOW_APPROVAL_RESUME",
-                idempotencyKey: outboxKey,
-                payload: {
-                  executionId: execution.id,
-                  workspaceId,
-                  stageOrder: nextStage.stageOrder,
-                  revisionNum: targetRevision.revisionNumber,
-                  jobId: String(outboxKey).replace(/:/g, "_"),
-                },
-              },
-            });
-            outboxEventId = outbox.id;
-          } else {
-            await tx.workflowExecution.update({
-              where: { id: execution.id },
-              data: { status: "COMPLETED", completedAt: new Date() },
-            });
-          }
-        } else if (input.decision === "REJECTED") {
-          if (approvalStage) {
-            await tx.workflowStageExecution.update({
-              where: { id: approvalStage.id },
-              data: {
-                status: "REJECTED",
-                completedAt: new Date(),
-                errorMessage: input.comment?.trim() || "Rejected by reviewer",
-              },
-            });
-          }
-        } else if (input.decision === "REVISION_REQUESTED") {
-          const scriptStage = execution.stages.find((s) => s.stageKey === "script_generation");
-          if (!scriptStage) {
-            throw new ValidationError("Workflow template does not contain a script_generation stage");
-          }
-
-          // Reset script_generation and all downstream stages back to PENDING
-          await tx.workflowStageExecution.updateMany({
-            where: {
-              executionId: execution.id,
-              stageOrder: { gte: scriptStage.stageOrder },
-            },
-            data: {
-              status: "PENDING",
-              output: Prisma.JsonNull,
-              errorMessage: null,
-              completedAt: null,
-            },
-          });
-
-          const prevInput = (execution.inputContext && typeof execution.inputContext === "object"
-            ? execution.inputContext
-            : {}) as Record<string, unknown>;
-
-          await tx.workflowExecution.update({
-            where: { id: execution.id },
-            data: {
-              currentStageIndex: scriptStage.stageOrder,
-              inputContext: {
-                ...prevInput,
-                reviewerFeedback: input.comment!.trim(),
-                revisionNumber: nextActiveRev,
-              } as Prisma.InputJsonValue,
-            },
-          });
-
-          const outboxKey = `exec_${execution.id}_revise_rev_${nextActiveRev}`;
-          const outbox = await tx.outboxEvent.upsert({
-            where: { idempotencyKey: outboxKey },
-            update: {},
-            create: {
-              workspaceId,
-              eventType: "WORKFLOW_REVISION_RERUN",
-              idempotencyKey: outboxKey,
-              payload: {
-                executionId: execution.id,
-                workspaceId,
-                stageOrder: scriptStage.stageOrder,
-                revisionNum: nextActiveRev,
-                jobId: String(outboxKey).replace(/:/g, "_"),
-              },
-            },
-          });
-          outboxEventId = outbox.id;
-        }
-
-        const refreshedAsset = await tx.contentAsset.findUniqueOrThrow({
-          where: { id: asset.id },
-          include: {
-            project: { select: { id: true, name: true, niche: true } },
-            execution: {
-              select: {
-                id: true,
-                status: true,
-                currentStageIndex: true,
-                activeRevisionNum: true,
-                approvedRevisionId: true,
-              },
-            },
-            revisions: {
-              orderBy: { revisionNumber: "desc" },
-              include: {
-                createdByUser: { select: { id: true, name: true, email: true } },
-              },
-            },
-            approvalDecisions: {
-              orderBy: { createdAt: "desc" },
-              include: {
-                reviewer: { select: { id: true, name: true, email: true } },
-                revision: { select: { id: true, revisionNumber: true } },
-              },
-            },
-          },
-        });
-
-        return { decisionRecord, refreshedAsset, outboxEventId };
-      });
-
-      if (txResult.outboxEventId) {
-        await dispatchOutboxEvent(txResult.outboxEventId);
       }
 
-      res.json({
-        decision: txResult.decisionRecord,
-        asset: serializeAsset(txResult.refreshedAsset),
+      const nextApprovalStatus =
+        input.decision === "APPROVED"
+          ? "APPROVED"
+          : input.decision === "REJECTED"
+            ? "REJECTED"
+            : "REVISION_REQUESTED";
+
+      if (!asset.executionId) {
+        throw new ValidationError("Content asset is not linked to a workflow execution");
+      }
+
+      const decisionRecord = await prisma.approvalDecision.create({
+        data: {
+          workspaceId,
+          projectId: asset.projectId,
+          executionId: asset.executionId,
+          assetId: asset.id,
+          revisionId: targetRevision.id,
+          reviewerId: req.user!.id,
+          decision: input.decision,
+          comment: input.comment?.trim() || null,
+          idempotencyKey: input.idempotencyKey ?? null,
+        },
       });
+
+      // Update this asset (and any sibling assets in the same execution)
+      await prisma.contentAsset.update({
+        where: { id: asset.id },
+        data: {
+          approvalStatus: nextApprovalStatus,
+          approvedRevisionId: input.decision === "APPROVED" ? targetRevision.id : null,
+          metadata: {
+            ...prevMeta,
+            approvalStatus: nextApprovalStatus,
+            lastDecision: input.decision,
+            lastReviewedBy: req.user?.email,
+            lastReviewedAt: new Date().toISOString(),
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      if (asset.executionId) {
+        await prisma.contentAsset.updateMany({
+          where: {
+            workspaceId,
+            executionId: asset.executionId,
+            id: { not: asset.id },
+            approvalStatus: "PENDING_APPROVAL",
+          },
+          data: {
+            approvalStatus: nextApprovalStatus,
+          },
+        });
+      }
+
+      let outboxEventId: string | null = null;
+
+      if (asset.executionId) {
+        const execution = await prisma.workflowExecution.findFirst({
+          where: { id: asset.executionId, workspaceId },
+          include: { stages: { orderBy: { stageOrder: "asc" } } },
+        });
+
+        if (execution) {
+          const nextExecStatus = input.decision === "REJECTED" ? "REJECTED" : "RUNNING";
+          const nextActiveRev =
+            input.decision === "REVISION_REQUESTED"
+              ? execution.activeRevisionNum + 1
+              : execution.activeRevisionNum;
+
+          await prisma.workflowExecution.update({
+            where: { id: execution.id },
+            data: {
+              status: nextExecStatus,
+              activeRevisionNum: nextActiveRev,
+              approvedRevisionId: input.decision === "APPROVED" ? targetRevision.id : null,
+              ...(input.decision === "REJECTED" ? { completedAt: new Date() } : {}),
+            },
+          });
+
+          const approvalStage = execution.stages.find((s) => s.stageKey === "approval");
+
+          if (input.decision === "APPROVED") {
+            if (approvalStage) {
+              await prisma.workflowStageExecution.update({
+                where: { id: approvalStage.id },
+                data: { status: "COMPLETED", completedAt: new Date() },
+              });
+            }
+
+            const nextStageOrder = approvalStage
+              ? approvalStage.stageOrder + 1
+              : execution.currentStageIndex + 1;
+            const nextStage = execution.stages.find((s) => s.stageOrder === nextStageOrder);
+
+            if (nextStage) {
+              const outboxKey = `exec_${execution.id}_approve_rev_${targetRevision.id}`;
+              const outbox = await prisma.outboxEvent.upsert({
+                where: { idempotencyKey: outboxKey },
+                update: {},
+                create: {
+                  workspaceId,
+                  eventType: "WORKFLOW_APPROVAL_RESUME",
+                  idempotencyKey: outboxKey,
+                  payload: {
+                    executionId: execution.id,
+                    workspaceId,
+                    stageOrder: nextStage.stageOrder,
+                    revisionNum: targetRevision.revisionNumber,
+                    jobId: String(outboxKey).replace(/:/g, "_"),
+                  },
+                },
+              });
+              outboxEventId = outbox.id;
+            } else {
+              await prisma.workflowExecution.update({
+                where: { id: execution.id },
+                data: { status: "COMPLETED", completedAt: new Date() },
+              });
+            }
+          } else if (input.decision === "REJECTED") {
+            if (approvalStage) {
+              await prisma.workflowStageExecution.update({
+                where: { id: approvalStage.id },
+                data: {
+                  status: "REJECTED",
+                  completedAt: new Date(),
+                  errorMessage: input.comment?.trim() || "Rejected by reviewer",
+                },
+              });
+            }
+          } else if (input.decision === "REVISION_REQUESTED") {
+            const scriptStage = execution.stages.find((s) => s.stageKey === "script_generation");
+            if (scriptStage) {
+              await prisma.workflowStageExecution.updateMany({
+                where: {
+                  executionId: execution.id,
+                  stageOrder: { gte: scriptStage.stageOrder },
+                },
+                data: {
+                  status: "PENDING",
+                  output: Prisma.JsonNull,
+                  errorMessage: null,
+                  completedAt: null,
+                },
+              });
+
+              const prevInput = (execution.inputContext && typeof execution.inputContext === "object"
+                ? execution.inputContext
+                : {}) as Record<string, unknown>;
+
+              await prisma.workflowExecution.update({
+                where: { id: execution.id },
+                data: {
+                  currentStageIndex: scriptStage.stageOrder,
+                  inputContext: {
+                    ...prevInput,
+                    reviewerFeedback: input.comment!.trim(),
+                    revisionNumber: nextActiveRev,
+                  } as Prisma.InputJsonValue,
+                },
+              });
+
+              const outboxKey = `exec_${execution.id}_revise_rev_${nextActiveRev}`;
+              const outbox = await prisma.outboxEvent.upsert({
+                where: { idempotencyKey: outboxKey },
+                update: {},
+                create: {
+                  workspaceId,
+                  eventType: "WORKFLOW_REVISION_RERUN",
+                  idempotencyKey: outboxKey,
+                  payload: {
+                    executionId: execution.id,
+                    workspaceId,
+                    stageOrder: scriptStage.stageOrder,
+                    revisionNum: nextActiveRev,
+                    jobId: String(outboxKey).replace(/:/g, "_"),
+                  },
+                },
+              });
+              outboxEventId = outbox.id;
+            }
+          }
+        }
+      }
+
+      if (outboxEventId) {
+        await dispatchOutboxEvent(outboxEventId);
+      }
+
+      const refreshedAsset = await prisma.contentAsset.findUniqueOrThrow({
+        where: { id: asset.id },
+        include: {
+          project: { select: { id: true, name: true, niche: true } },
+          execution: {
+            select: {
+              id: true,
+              status: true,
+              currentStageIndex: true,
+              activeRevisionNum: true,
+              approvedRevisionId: true,
+            },
+          },
+          revisions: {
+            orderBy: { revisionNumber: "desc" },
+            include: {
+              createdByUser: { select: { id: true, name: true, email: true } },
+            },
+          },
+          approvalDecisions: {
+            orderBy: { createdAt: "desc" },
+            include: {
+              reviewer: { select: { id: true, name: true, email: true } },
+              revision: { select: { id: true, revisionNumber: true } },
+            },
+          },
+        },
+      });
+
+      res.json({
+        decision: decisionRecord,
+        asset: serializeAsset(refreshedAsset),
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.delete(
+  "/pending",
+  requireWorkspaceAccess(["OWNER", "ADMIN", "EDITOR"]),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const workspaceId = req.workspaceId!;
+      const pendingAssets = await prisma.contentAsset.findMany({
+        where: { workspaceId, approvalStatus: "PENDING_APPROVAL" },
+        select: { id: true, executionId: true },
+      });
+
+      const assetIds = pendingAssets.map((a) => a.id);
+      const execIds = Array.from(
+        new Set(pendingAssets.map((a) => a.executionId).filter((id): id is string => Boolean(id)))
+      );
+
+      if (assetIds.length > 0) {
+        await prisma.approvalDecision.deleteMany({ where: { workspaceId, assetId: { in: assetIds } } });
+        await prisma.contentRevision.deleteMany({ where: { workspaceId, assetId: { in: assetIds } } });
+        await prisma.contentAsset.deleteMany({ where: { workspaceId, id: { in: assetIds } } });
+      }
+
+      if (execIds.length > 0) {
+        await prisma.workflowExecution.updateMany({
+          where: { workspaceId, id: { in: execIds }, status: "AWAITING_APPROVAL" },
+          data: { status: "REJECTED", completedAt: new Date() },
+        });
+      }
+
+      res.json({ ok: true, deletedCount: assetIds.length });
     } catch (err) {
       next(err);
     }

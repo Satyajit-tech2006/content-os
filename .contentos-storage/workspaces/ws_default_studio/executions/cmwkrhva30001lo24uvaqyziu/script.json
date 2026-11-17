@@ -1,0 +1,96 @@
+{
+  "title": "The One Semicolon That Kept Me Up",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "The Unrelenting Quest for Code Perfection",
+    "topic": "Why Developers Stay Up Until 3 AM Fixing One Missing Semicolon",
+    "hookIdeas": [
+      "[The sound of a clock ticking...]",
+      "[A single, pesky semicolon...]",
+      "[The all-too-familiar 3 AM coding session...]"
+    ],
+    "talkingPoints": [
+      "The psychology behind the 'one more fix' mentality",
+      "The importance of attention to detail in coding",
+      "The impact of perfectionism on developer productivity and well-being",
+      "The role of debugging in the development process",
+      "The ultimate satisfaction of a job well done (and a bug-free codebase)"
+    ],
+    "targetKeywords": [
+      "code perfection",
+      "developer productivity",
+      "debugging",
+      "attention to detail",
+      "coding habits",
+      "developer well-being"
+    ]
+  },
+  "script": {
+    "title": "The One Semicolon That Kept Me Up",
+    "hook": "The sound of a clock ticking... can be the most haunting sound in the developer's world.",
+    "script": "As a developer, I've been there - staring at a monitor, watching the wall clock spin past midnight, fix one pesky bug that refuses to die. But what drives us to keep going? It's not just about the code perfection, but about the satisfaction of a job well done. And finally, after what felt like an eternity, the single line fix compiles with zero errors. The ultimate rush of triumph! So, the next time you find yourself debugging into the wee hours, just remember - it's all worth it for that perfect bug-free codebase.",
+    "description": "The Unrelenting Quest for Code Perfection. What drives developers to keep pushing past 3 AM? Watch to find out! #coding #developerproductivity #debugging #attentiontodetail #codinghabits #developerwellbeing",
+    "hashtags": [
+      "#coding",
+      "#developerproductivity",
+      "#debugging",
+      "#attentiontodetail",
+      "#codinghabits",
+      "#developerwellbeing",
+      "#codeperfection"
+    ],
+    "estimatedDuration": 35,
+    "storyboard": [
+      {
+        "beatSummary": "Staring at the monitor, watching the clock spin past midnight",
+        "action": "thinking",
+        "position": "left",
+        "propType": "comparison_bars",
+        "propTitle": "Clock Ticking",
+        "propMetrics": [
+          "60",
+          "30",
+          "60"
+        ]
+      },
+      {
+        "beatSummary": "Walking out onto a quiet night street under glowing streetlights",
+        "action": "walking_across",
+        "position": "traverse",
+        "propType": "parallel_grid",
+        "propTitle": "Glowing Streetlights",
+        "propMetrics": [
+          "10",
+          "5",
+          "10"
+        ]
+      },
+      {
+        "beatSummary": "Returning to a sunlit morning desk with the single-line fix",
+        "action": "presenting_board",
+        "position": "center",
+        "propType": "blueprint_structure",
+        "propTitle": "Code Compilation",
+        "propMetrics": [
+          "20",
+          "10",
+          "20"
+        ]
+      },
+      {
+        "beatSummary": "Celebratory victory jump",
+        "action": "celebrating",
+        "position": "right",
+        "propType": "trophy_badge",
+        "propTitle": "Victory",
+        "propMetrics": [
+          "5",
+          "2",
+          "5"
+        ]
+      }
+    ],
+    "voiceoverScript": "As a developer, I've been there - staring at a monitor, watching the wall clock spin past midnight, fix one pesky bug that refuses to die. But what drives us to keep going? It's not just about the code perfection, but about the satisfaction of a job well done. And finally, after what felt like an eternity, the single line fix compiles with zero errors. The ultimate rush of triumph! So, the next time you find yourself debugging into the wee hours, just remember - it's all worth it for that perfect bug-free codebase.",
+    "caption": "The Unrelenting Quest for Code Perfection. What drives developers to keep pushing past 3 AM? Watch to find out! #coding #developerproductivity #debugging #attentiontodetail #codinghabits #developerwellbeing"
+  }
+}

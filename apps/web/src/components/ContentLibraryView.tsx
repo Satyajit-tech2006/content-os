@@ -14,6 +14,7 @@ import {
   MessageSquareWarning,
   Sparkles,
   UserCheck,
+  Trash2,
 } from "lucide-react";
 import {
   apiFetch,
@@ -222,9 +223,26 @@ export function ContentLibraryView({ workspaceId }: { workspaceId: string }) {
     }
   }
 
+  async function handleClearAllPending() {
+    setFeedbackError(null);
+    setActionBanner(null);
+    setSaving(true);
+    try {
+      const res = await apiFetch<{ ok: boolean; deletedCount: number }>(
+        "/workspaces/" + workspaceId + "/assets/pending",
+        { method: "DELETE" }
+      );
+      setActionBanner(`Removed ${res.deletedCount} pending item(s) from the workspace.`);
+      await loadAssets();
+    } catch (err) {
+      setFeedbackError(err instanceof Error ? err.message : "Failed to clear pending items");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const pendingCount = assets.filter((a) => a.approvalStatus === "PENDING_APPROVAL").length;
-  const canReview =
-    selected?.execution?.status === "AWAITING_APPROVAL" && isViewingLatest;
+  const canReview = Boolean(selected && isViewingLatest && (selected.approvalStatus === "PENDING_APPROVAL" || selected.execution?.status === "AWAITING_APPROVAL"));
 
   if (loading) {
     return (

@@ -14,7 +14,8 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
   const [selectedExecId, setSelectedExecId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [durationRange, setDurationRange] = useState<string>("30-45s");
-  const [videoStyle, setVideoStyle] = useState<string>("stock_ken_burns");
+  const [videoStyle, setVideoStyle] = useState("isometric_tech");
+  const [voiceTone, setVoiceTone] = useState("energetic");
   const [simulateFailureAtStage, setSimulateFailureAtStage] = useState("");
   const [triggering, setTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +54,7 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
             topic: topic.trim() || undefined,
             durationRange,
             videoStyle,
+          tone: voiceTone,
             simulateFailureAtStage: simulateFailureAtStage || undefined,
           }),
         }
@@ -162,13 +164,28 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
                 <div>
                   <label className="block text-[11px] text-zinc-500 mb-1">Visual Video Style</label>
                   <select value={videoStyle} onChange={(e) => setVideoStyle(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-200">
-                    <option value="stock_ken_burns">1. Stock Media + Ken Burns</option>
+                    <option value="isometric_tech">0. Isometric Tech Motion Graphics (3D Explainers)</option>
+                  <option value="stock_ken_burns">1. Stock Media + Ken Burns</option>
                     <option value="stickman_explainer">2. Stickman Animation</option>
                     <option value="minimal_line_art">3. Minimal Line-Art & Effects</option>
                     <option value="kinetic_typography">4. Kinetic Typography</option>
                     <option value="tech_hud_blueprint">5. Tech HUD / Blueprint</option>
                   </select>
                 </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                Voice &amp; Script Tone
+              </label>
+              <select
+                value={voiceTone}
+                onChange={(e) => setVoiceTone(e.target.value)}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              >
+                <option value="energetic">Energetic &amp; Punchy (Guy Neural)</option>
+                <option value="engaging">Natural Host (Andrew Neural)</option>
+                <option value="documentary">Warm Storyteller (Aria Neural)</option>
+              </select>
+            </div>
               </div>
               <div>
                 <label className="block text-[11px] text-zinc-500 mb-1">Test Failure Handling (Optional)</label>

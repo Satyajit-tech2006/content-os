@@ -1,0 +1,85 @@
+{
+  "title": "Every RAM Size Explained — 8 GB vs 16 GB vs 32 GB",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "How RAM Sizes Impact Your Productivity and Performance",
+    "topic": "Every RAM Size Explained — 8 GB vs 16 GB vs 32 GB",
+    "hookIdeas": [
+      "You've got 8 GB of RAM, but your computer is still slow?",
+      "RAM: The Hidden Bottleneck in Your Tech Setup",
+      "Can Your Computer Handle 8 GB of RAM?"
+    ],
+    "talkingPoints": [
+      "8 GB of RAM acts like a small desk where multiple applications quickly overflow the workspace, leading to slow performance.",
+      "When physical memory fills up, swapping data with the SSD can slow down data transfer rates, causing lag and stuttering.",
+      "The throughput of RAM is measured in GB/s, and 16 GB and 32 GB offer significantly faster performance compared to 8 GB."
+    ],
+    "targetKeywords": [
+      "RAM size comparison",
+      "8 GB vs 16 GB vs 32 GB",
+      "RAM performance vs productivity",
+      "how much RAM do I need",
+      "best RAM size for gaming"
+    ]
+  },
+  "script": {
+    "title": "Every RAM Size Explained — 8 GB vs 16 GB vs 32 GB",
+    "hook": "You've got 8 GB of RAM, but your computer is still slow?",
+    "script": "8 GB of RAM acts like a small desk where multiple applications quickly overflow the workspace, leading to slow performance. But what happens when physical memory fills up? Swapping data with the SSD can slow down data transfer rates, causing lag and stuttering. Compare 8 GB, 16 GB, and 32 GB throughput towers side-by-side. 16 GB is the sweet spot where everything fits smoothly. Upgrade to 16 GB for a boost in productivity and performance. Don't settle for slow performance, upgrade your RAM today!",
+    "description": "Discover the impact of RAM size on your productivity and performance. Which RAM size is best for gaming and multitasking? Find out in this video!",
+    "hashtags": [
+      "#RAMsizeComparison",
+      "#8GBvs16GBvs32GB",
+      "#RAMperformanceVsProductivity",
+      "#howMuchRAMdIneed",
+      "#bestRAMsizeforGaming"
+    ],
+    "estimatedDuration": 55,
+    "storyboard": [
+      {
+        "beatSummary": "A cluttered workspace with multiple applications open",
+        "action": "thinking",
+        "position": "center",
+        "propType": "comparison_bars",
+        "propTitle": "RAM as a Desk",
+        "propMetrics": [
+          "8 GB"
+        ]
+      },
+      {
+        "beatSummary": "A circuit board with a memory swap happening",
+        "action": "examining_lens",
+        "position": "right",
+        "propType": "speed_gauge",
+        "propTitle": "SSD Swap Memory",
+        "propMetrics": [
+          "Slower Data Transfer Rates"
+        ]
+      },
+      {
+        "beatSummary": "A side-by-side comparison of 8 GB, 16 GB, and 32 GB throughput towers",
+        "action": "presenting_board",
+        "position": "traverse",
+        "propType": "parallel_grid",
+        "propTitle": "RAM Throughput",
+        "propMetrics": [
+          "8 GB",
+          "16 GB",
+          "32 GB"
+        ]
+      },
+      {
+        "beatSummary": "A clean and organized workspace with a 16 GB RAM upgrade",
+        "action": "celebrating",
+        "position": "left",
+        "propType": "growth_chart",
+        "propTitle": "Upgraded RAM",
+        "propMetrics": [
+          "16 GB"
+        ]
+      }
+    ],
+    "voiceoverScript": "8 GB of RAM acts like a small desk where multiple applications quickly overflow the workspace, leading to slow performance. But what happens when physical memory fills up? Swapping data with the SSD can slow down data transfer rates, causing lag and stuttering. Compare 8 GB, 16 GB, and 32 GB throughput towers side-by-side. 16 GB is the sweet spot where everything fits smoothly. Upgrade to 16 GB for a boost in productivity and performance. Don't settle for slow performance, upgrade your RAM today!",
+    "caption": "Discover the impact of RAM size on your productivity and performance. Which RAM size is best for gaming and multitasking? Find out in this video!"
+  }
+}

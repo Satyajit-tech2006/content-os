@@ -15,7 +15,7 @@ export const DurationRangeSchema = z.enum([
 export type DurationRange = z.infer<typeof DurationRangeSchema>;
 
 export const VideoStyleSchema = z.enum([
-  "stock_ken_burns",
+  "isometric_tech", "stock_ken_burns",
   "stickman_explainer",
   "minimal_line_art",
   "kinetic_typography",
@@ -95,7 +95,7 @@ export const ProjectConfigSchema = z
     aspectRatio: z.enum(["9:16", "16:9", "1:1"]).default("9:16"),
     targetDurationSec: z.number().int().min(10).max(3600).default(45),
     durationRange: DurationRangeSchema.default("30-45s"),
-    videoStyle: VideoStyleSchema.default("stock_ken_burns"),
+    videoStyle: VideoStyleSchema.default("isometric_tech"),
     brandGuidelines: z.string().max(1000).optional(),
     customRules: z.record(z.unknown()).optional(),
   })

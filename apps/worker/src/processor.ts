@@ -387,8 +387,7 @@ export async function processWorkflowStageJob(
         )
       );
 
-      await prisma.$transaction(async (tx) => {
-        const existingAsset = await tx.contentAsset.findUnique({
+      const existingAsset = await prisma.contentAsset.findUnique({
           where: { storageKey: scriptStorageKey },
         });
 
@@ -397,7 +396,7 @@ export async function processWorkflowStageJob(
           : execution.activeRevisionNum;
 
         const asset = existingAsset
-          ? await tx.contentAsset.update({
+          ? await prisma.contentAsset.update({
               where: { id: existingAsset.id },
               data: {
                 fileName: title.slice(0, 120),
@@ -413,7 +412,7 @@ export async function processWorkflowStageJob(
                 } as Prisma.InputJsonValue,
               },
             })
-          : await tx.contentAsset.create({
+          : await prisma.contentAsset.create({
               data: {
                 workspaceId,
                 projectId: execution.projectId,
@@ -435,7 +434,7 @@ export async function processWorkflowStageJob(
               },
             });
 
-        const revision = await tx.contentRevision.upsert({
+        const revision = await prisma.contentRevision.upsert({
           where: {
             assetId_revisionNumber: {
               assetId: asset.id,
@@ -477,21 +476,20 @@ export async function processWorkflowStageJob(
         });
 
         if (!execution.project.approvalRequired) {
-          await tx.contentAsset.update({
+          await prisma.contentAsset.update({
             where: { id: asset.id },
             data: { approvedRevisionId: revision.id },
           });
-          await tx.workflowExecution.update({
+          await prisma.workflowExecution.update({
             where: { id: executionId },
             data: { approvedRevisionId: revision.id, activeRevisionNum: nextRevNum },
           });
         } else {
-          await tx.workflowExecution.update({
+          await prisma.workflowExecution.update({
             where: { id: executionId },
             data: { activeRevisionNum: nextRevNum },
           });
         }
-      });
     }
 
     // Human-in-the-loop Approval Gate: pause execution cleanly without blocking worker
@@ -533,8 +531,8 @@ export async function processWorkflowStageJob(
       ? `exec_${executionId}_stage_${nextStageOrder}_rev_${execution.activeRevisionNum}`
       : null;
 
-    const createdOutbox = await prisma.$transaction(async (tx) => {
-      await tx.workflowStageExecution.update({
+    const createdOutbox = await (async () => {
+      await prisma.workflowStageExecution.update({
         where: { id: stageRecord.id },
         data: {
           status: "COMPLETED",
@@ -546,7 +544,7 @@ export async function processWorkflowStageJob(
       });
 
       for (const u of result.usage ?? []) {
-        await tx.usageRecord.create({
+        await prisma.usageRecord.create({
           data: {
             workspaceId,
             projectId: execution.projectId,
@@ -567,7 +565,7 @@ export async function processWorkflowStageJob(
       }
 
       if (nextStageDef && outboxKey) {
-        return tx.outboxEvent.upsert({
+        return prisma.outboxEvent.upsert({
           where: { idempotencyKey: outboxKey },
           update: {},
           create: {
@@ -585,7 +583,7 @@ export async function processWorkflowStageJob(
         });
       }
       return null;
-    });
+    })();
 
     if (nextStageDef && createdOutbox && outboxKey) {
       try {
