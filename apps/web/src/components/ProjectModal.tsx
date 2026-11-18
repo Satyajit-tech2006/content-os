@@ -132,7 +132,7 @@ export function ProjectModal({ workspaceId, templates, initialProject, onClose, 
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1.5">Default Video Visual Style</label>
               <select value={videoStyle} onChange={(e) => setVideoStyle(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none">
-                <option value="isometric_tech">0. Isometric Tech Motion Graphics (3D Explainers)</option>
+                <option value="isometric_tech">0. Isometric Motion Graphics (3D Explainers)</option>
                     <option value="stickman_explainer">1. Stickman Animation (Story-Driven Dynamic)</option>
                     <option value="minimal_line_art">2. Normal Lines Info Reels (Clean Vector Motion)</option>
                     <option value="phonk_montage_edit">3. Anime &amp; Phonk Montage Edits</option>

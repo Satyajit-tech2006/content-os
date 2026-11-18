@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Activity,
+  UserCheck,
+  Scissors,
 } from "lucide-react";
 import {
   apiFetch,
@@ -31,11 +33,15 @@ import { ProjectDetailView } from "./ProjectDetailView";
 import { ContentLibraryView } from "./ContentLibraryView";
 import { PublishingView } from "./PublishingView";
 import { AnalyticsView } from "./AnalyticsView";
+import { FemaleLibraryView } from "./FemaleLibraryView";
+import { LiveClipperPanel } from "./LiveClipperPanel";
 
 type NavSection =
   | "overview"
   | "projects"
   | "library"
+  | "female-library"
+  | "live-clipper"
   | "automation"
   | "publishing"
   | "analytics"
@@ -160,6 +166,8 @@ export function DashboardShell() {
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "projects", label: "Projects", icon: FolderKanban },
     { id: "library", label: "Content Library", icon: Film },
+    { id: "female-library", label: "Female Library", icon: UserCheck },
+    { id: "live-clipper", label: "Live Clipper", icon: Scissors, badge: "LIVE" },
     { id: "automation", label: "Automation", icon: Workflow },
     { id: "publishing", label: "Publishing", icon: Send },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
@@ -274,7 +282,7 @@ export function DashboardShell() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h1 className="text-xl font-semibold tracking-tight text-zinc-100 capitalize">
-                    {activeNav === "overview" ? "Workspace Overview" : activeNav}
+                    {activeNav === "overview" ? "Workspace Overview" : activeNav === "live-clipper" ? "Twitch Live Hype-Clipper" : activeNav}
                   </h1>
                   <p className="text-xs text-zinc-400 mt-0.5">
                     Centralized multi-channel operations & workflow automation
@@ -290,6 +298,13 @@ export function DashboardShell() {
                   <Plus className="h-4 w-4" /> Create Project
                 </button>
               </div>
+
+              {activeNav === "live-clipper" && (
+                <LiveClipperPanel
+                  workspaceId={activeWorkspaceId}
+                  projects={(overview?.projects ?? []).map((p) => ({ id: p.id, name: p.name }))}
+                />
+              )}
 
               {(activeNav === "overview" || activeNav === "projects") && (
                 <>

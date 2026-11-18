@@ -1,0 +1,107 @@
+{
+  "title": "Inside an Indian Tiger Reserve: Coexistence is Key to Conservation",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "Why Coexistence is Key to Conservation",
+    "topic": "Inside an Indian Tiger Reserve",
+    "hookIdeas": [
+      "In a rare glimpse into the lives of India's apex predators, we reveal the shocking truth behind Bengal tigers' river corridor hunts.",
+      "As we delve into the heart of a tiger reserve, we uncover the surprising secret to maintaining a delicate balance of species and habitats.",
+      "Meet the unsung heroes of conservation: the forest rangers who risk it all to protect India's most majestic wildlife."
+    ],
+    "talkingPoints": [
+      "Healthy herds of chital spotted deer and sambar deer play a crucial role in maintaining grassland balance across 400 square kilometers of tropical forest, keeping vegetation under control and preventing soil erosion.",
+      "GPS-collared Bengal tigers use river corridors to hunt and patrol territories without encroaching on village farms, ensuring the safety of both humans and wildlife.",
+      "Camera-trap grids and acoustic sensors empower wildlife rangers to respond swiftly to poaching threats, reducing human-wildlife conflict and protecting endangered species in real-time.",
+      "Protected wildlife corridors have helped wild tiger and deer populations rebound across connected reserves, providing a safe haven for these majestic creatures to thrive."
+    ],
+    "targetKeywords": [
+      "Indian tiger reserve",
+      "Bengal tiger conservation",
+      "Wildlife corridors",
+      "Forest rangers",
+      "Coexistence in conservation",
+      "Tropical forest ecosystem"
+    ]
+  },
+  "script": {
+    "title": "Inside an Indian Tiger Reserve: Coexistence is Key to Conservation",
+    "hook": "In a rare glimpse into the lives of India's apex predators, we reveal the shocking truth behind Bengal tigers' river corridor hunts.",
+    "script": "Meet the forest rangers who risk it all to protect India's most majestic wildlife. Healthy herds of chital spotted deer and sambar deer play a crucial role in maintaining grassland balance across 400 square kilometers of tropical forest. GPS-collared Bengal tigers use river corridors to hunt and patrol territories without encroaching on village farms, ensuring the safety of both humans and wildlife. Camera-trap grids and acoustic sensors empower wildlife rangers to respond swiftly to poaching threats, reducing human-wildlife conflict. Protected wildlife corridors have helped wild tiger and deer populations rebound across connected reserves. Let's explore how coexistence is key to conservation.",
+    "description": "Join us on an inside look at an Indian tiger reserve where apex predators, spotted deer, and forest rangers share one ecosystem. Learn how conservation efforts are making a difference in the lives of India's majestic wildlife.",
+    "hashtags": [
+      "#IndianTigerReserve",
+      "#BengalTigerConservation",
+      "#WildlifeCorridors",
+      "#CoexistenceInConservation",
+      "#TropicalForestEcosystem",
+      "#WildlifeProtection",
+      "#ConservationEfforts"
+    ],
+    "estimatedDuration": 55,
+    "storyboard": [
+      {
+        "beatSummary": "Aerial shot of the tiger reserve",
+        "action": "presenting_board",
+        "position": "center",
+        "propType": "blueprint_structure",
+        "propTitle": "Tiger Reserve Overview",
+        "propMetrics": [
+          "400 sq km",
+          "Tropical Forest",
+          "Endangered Species"
+        ]
+      },
+      {
+        "beatSummary": "Forest rangers working in the field",
+        "action": "walking_across",
+        "position": "left",
+        "propType": "flow_network",
+        "propTitle": "Ranger's Daily Task",
+        "propMetrics": [
+          "Monitoring Wildlife",
+          "Maintaining Corridors",
+          "Protecting Endangered Species"
+        ]
+      },
+      {
+        "beatSummary": "GPS tracking device on a Bengal tiger",
+        "action": "examining_lens",
+        "position": "right",
+        "propType": "magnifying_lens",
+        "propTitle": "River Corridor Tracking",
+        "propMetrics": [
+          "GPS Collars",
+          "River Corridors",
+          "Hunting Grounds"
+        ]
+      },
+      {
+        "beatSummary": "Camera-trap grid setup",
+        "action": "celebrating",
+        "position": "traverse",
+        "propType": "trophy_badge",
+        "propTitle": "Camera-Trap Grids",
+        "propMetrics": [
+          "Acoustic Sensors",
+          "Camera-Traps",
+          "Poaching Threats"
+        ]
+      },
+      {
+        "beatSummary": "Protected wildlife corridor",
+        "action": "directing_swarm",
+        "position": "center",
+        "propType": "growth_chart",
+        "propTitle": "Protected Corridors",
+        "propMetrics": [
+          "Wildlife Populations",
+          "Conservation Success",
+          "Ecosystem Balance"
+        ]
+      }
+    ],
+    "voiceoverScript": "Meet the forest rangers who risk it all to protect India's most majestic wildlife. Healthy herds of chital spotted deer and sambar deer play a crucial role in maintaining grassland balance across 400 square kilometers of tropical forest. GPS-collared Bengal tigers use river corridors to hunt and patrol territories without encroaching on village farms, ensuring the safety of both humans and wildlife. Camera-trap grids and acoustic sensors empower wildlife rangers to respond swiftly to poaching threats, reducing human-wildlife conflict. Protected wildlife corridors have helped wild tiger and deer populations rebound across connected reserves. Let's explore how coexistence is key to conservation.",
+    "caption": "Join us on an inside look at an Indian tiger reserve where apex predators, spotted deer, and forest rangers share one ecosystem. Learn how conservation efforts are making a difference in the lives of India's majestic wildlife."
+  }
+}

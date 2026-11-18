@@ -1,0 +1,88 @@
+{
+  "title": "Tracking Tigers: The Heroes of Conservation",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "The Unlikely Heroes of Tiger Conservation: How Tech-Savvy Wildlife Rangers and Veterinary Doctors Are Saving the World's Most Elusive Big Cats",
+    "topic": "Tracking Tigers: The Heroes of Conservation",
+    "hookIdeas": [
+      "The untold story of the brave men and women who risk it all to track down a tiger in the wild",
+      "Meet the tech-savvy wildlife rangers who are using cutting-edge tech to save the world's most endangered big cat",
+      "From forests to fields, the extraordinary methods being used to protect the world's most majestic creature"
+    ],
+    "talkingPoints": [
+      "GPS-enabled radio collars and camera-trap networks allow field conservation teams to monitor tiger territories across 500 square kilometers of forest, providing valuable insights into tiger behavior and habitat needs",
+      "Rapid-response rescue units use tranquilizers and ventilated transit cages to safely transport straying big cats away from village borders, minimizing human-wildlife conflict and ensuring the cat's safety",
+      "Thermal drones and bio-acoustic sensors are being used to prevent human-wildlife conflict before it occurs, detecting the presence of tigers and other wildlife in real-time and alerting conservation teams to take action"
+    ],
+    "targetKeywords": [
+      "tiger conservation",
+      "wildlife tracking",
+      "GPS collars",
+      "camera-trap networks",
+      "tiger relocation",
+      "wildlife-human conflict prevention"
+    ]
+  },
+  "script": {
+    "title": "Tracking Tigers: The Heroes of Conservation",
+    "hook": "In the heart of the forest, a team of brave wildlife rangers is on a mission to save the world's most elusive big cat",
+    "script": "Meet the tech-savvy wildlife rangers who are using cutting-edge tech to track and relocate endangered tigers safely. Their secret tool? GPS-enabled radio collars and camera-trap networks that monitor tiger territories across 500 square kilometers of forest. But that's just the beginning. Rapid-response rescue units use tranquilizers and ventilated transit cages to safely transport straying big cats away from village borders. And with thermal drones and bio-acoustic sensors, they can detect tigers and other wildlife in real-time, preventing human-wildlife conflict before it occurs. The result? Satellite corridor mapping has doubled wild tiger populations across protected reserves. Join the mission to save the world's most majestic creature and discover the incredible methods being used to protect them.",
+    "description": "Meet the heroes of tiger conservation! Learn how tech-savvy wildlife rangers and veterinary doctors are using cutting-edge tech to track and relocate endangered tigers safely.",
+    "hashtags": [
+      "#tigerconservation",
+      "#wildlifetracking",
+      "#GPScollars",
+      "#cameratrappnetworks",
+      "#tigerrelocation",
+      "#wildlifehumanconflictprevention"
+    ],
+    "estimatedDuration": 55,
+    "storyboard": [
+      {
+        "beatSummary": "Aerial shot of a tiger's territory",
+        "action": "thinking",
+        "position": "center",
+        "propType": "growth_chart",
+        "propTitle": "Tiger Territory",
+        "propMetrics": [
+          "500 square kilometers",
+          "GPS collars and camera-trap networks"
+        ]
+      },
+      {
+        "beatSummary": "Rapid-response rescue unit in transit",
+        "action": "walking_across",
+        "position": "right",
+        "propType": "blueprint_structure",
+        "propTitle": "Rapid-Response Rescue Unit",
+        "propMetrics": [
+          "Tranquilizers",
+          "Ventilated Transit Cages"
+        ]
+      },
+      {
+        "beatSummary": "Thermal drone in flight",
+        "action": "directing_swarm",
+        "position": "traverse",
+        "propType": "speed_gauge",
+        "propTitle": "Thermal Drone",
+        "propMetrics": [
+          "Real-time detection",
+          "Bio-acoustic sensors"
+        ]
+      },
+      {
+        "beatSummary": "Satellite corridor mapping",
+        "action": "celebrating",
+        "position": "left",
+        "propType": "trophy_badge",
+        "propTitle": "Satellite Corridor Mapping",
+        "propMetrics": [
+          "Doubled wild tiger populations"
+        ]
+      }
+    ],
+    "voiceoverScript": "Meet the tech-savvy wildlife rangers who are using cutting-edge tech to track and relocate endangered tigers safely. Their secret tool? GPS-enabled radio collars and camera-trap networks that monitor tiger territories across 500 square kilometers of forest. But that's just the beginning. Rapid-response rescue units use tranquilizers and ventilated transit cages to safely transport straying big cats away from village borders. And with thermal drones and bio-acoustic sensors, they can detect tigers and other wildlife in real-time, preventing human-wildlife conflict before it occurs. The result? Satellite corridor mapping has doubled wild tiger populations across protected reserves. Join the mission to save the world's most majestic creature and discover the incredible methods being used to protect them.",
+    "caption": "Meet the heroes of tiger conservation! Learn how tech-savvy wildlife rangers and veterinary doctors are using cutting-edge tech to track and relocate endangered tigers safely."
+  }
+}

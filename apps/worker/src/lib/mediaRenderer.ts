@@ -56,18 +56,50 @@ export async function probeDurationSec(filePath: string, fallbackSec = 15): Prom
 function pickNeuralVoiceAndProsody(tone?: string, explicitVoice?: string): {
   voice: string;
   label: string;
+  rate?: string;
+  pitch?: string;
 } {
-  if (explicitVoice) {
-    return { voice: explicitVoice, label: explicitVoice };
+  const raw = (explicitVoice || tone || "").toLowerCase();
+  if (raw.includes("hindi_kabir") || raw.includes("hi-in-madhurneural:energetic") || raw.includes("kabir")) {
+    return {
+      voice: "hi-IN-MadhurNeural",
+      label: "Kabir ? Hindi Energetic Male (hi-IN-MadhurNeural)",
+      rate: "+10%",
+      pitch: "+2Hz",
+    };
   }
-  const t = (tone || "").toLowerCase();
-  if (/energetic|creator|hype|gaming|fast|bold|punchy|guy/.test(t)) {
+  if (raw.includes("hindi_kavya") || raw.includes("hi-in-swaraneural:calm") || raw.includes("kavya")) {
+    return {
+      voice: "hi-IN-SwaraNeural",
+      label: "Kavya ? Hindi Calm Documentary (hi-IN-SwaraNeural)",
+      rate: "-4%",
+      pitch: "-1Hz",
+    };
+  }
+  if (raw.includes("hindi_swara") || raw.includes("hi-in-swaraneural") || raw.includes("swara")) {
+    return {
+      voice: "hi-IN-SwaraNeural",
+      label: "Swara ? Hindi Female Storyteller (hi-IN-SwaraNeural)",
+      rate: "+2%",
+    };
+  }
+  if (raw.includes("hindi_madhur") || raw.includes("hi-in-madhurneural") || raw.includes("madhur") || raw.includes("hindi")) {
+    return {
+      voice: "hi-IN-MadhurNeural",
+      label: "Madhur ? Hindi Male Explainer (hi-IN-MadhurNeural)",
+      rate: "+3%",
+    };
+  }
+  if (explicitVoice) {
+    return { voice: explicitVoice.split(":")[0]!, label: explicitVoice };
+  }
+  if (/energetic|creator|hype|gaming|fast|bold|punchy|guy/.test(raw)) {
     return {
       voice: "en-US-GuyNeural",
       label: "Guy Neural (Energetic Creator)",
     };
   }
-  if (/warm|story|teller|calm|documentary|cinematic|aria/.test(t)) {
+  if (/warm|story|teller|calm|documentary|cinematic|aria/.test(raw)) {
     return {
       voice: "en-US-AriaNeural",
       label: "Aria Neural (Expressive Storyteller)",
@@ -300,7 +332,7 @@ async function attemptEdgeTtsOnce(
  * and exact WordBoundary timestamp extraction. NEVER falls back to robotic Windows SAPI;
  * if all 3 attempts fail, throws a descriptive error to halt the execution cleanly.
  */
-function splitTextIntoTtsChunks(text: string, maxChars = 320): string[] {
+function splitTextIntoTtsChunks(text: string, maxChars = 220): string[] {
   const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [text];
   const chunks: string[] = [];
   let current = "";
@@ -351,7 +383,7 @@ export async function synthesizeVoiceoverMp3(params: {
 
   const cleanText = sanitizeNarrationText(params.text) || "Welcome to our channel.";
   const { voice, label } = pickNeuralVoiceAndProsody(params.tone, params.voice);
-  const chunks = splitTextIntoTtsChunks(cleanText, 320);
+  const chunks = splitTextIntoTtsChunks(cleanText, 220);
 
   const chunkPaths: string[] = [];
   const allWordTimings: WordTiming[] = [];
@@ -362,7 +394,7 @@ export async function synthesizeVoiceoverMp3(params: {
     let chunkResult: { mp3Buffer: Buffer; wordTimings: WordTiming[] } | null = null;
     let lastErr: unknown = null;
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 7; attempt++) {
       try {
         chunkResult = await attemptEdgeTtsOnce(chunkText, voice);
         break;
@@ -378,7 +410,7 @@ export async function synthesizeVoiceoverMp3(params: {
       for (const cp of chunkPaths) await fs.unlink(cp).catch(() => {});
       const msg = lastErr instanceof Error ? lastErr.message : String(lastErr);
       throw new Error(
-        `Neural TTS synthesis failed on chunk ${cIdx + 1}/${chunks.length} after 3 attempts (${voice}): ${msg}. Execution terminated to prevent robotic fallback.`
+        `Neural TTS synthesis failed on chunk ${cIdx + 1}/${chunks.length} after 7 attempts (${voice}): ${msg}. Execution terminated to prevent robotic fallback.`
       );
     }
 
@@ -411,6 +443,9 @@ export async function synthesizeVoiceoverMp3(params: {
     }
 
     cumulativeOffsetSec += chunkDurSec;
+    if (cIdx < chunks.length - 1) {
+      await new Promise((r) => setTimeout(r, 250));
+    }
   }
 
   if (chunkPaths.length === 1) {
@@ -771,33 +806,517 @@ function drawStatusPill(
   ctx.restore();
 }
 
-function detectIsometricDomain(beat: DynamicStoryboardBeat, sceneIdx: number):
-  | "cafe_storefront"
-  | "supply_chain"
-  | "finance_vault"
-  | "tech_hardware" {
-  const text = `${beat.beatSummary || ""} ${beat.propTitle || ""} ${(beat.propMetrics || []).join(" ")}`.toLowerCase();
+type IsoTopicTheme =
+  | "aviation_space"
+  | "maritime_rail"
+  | "urban_architecture"
+  | "wildlife_ecology"
+  | "civic_governance"
+  | "cold_chain"
+  | "finance"
+  | "bio_science"
+  | "energy"
+  | "retail"
+  | "tech_systems";
 
-  if (/coffee|cafe|caf?|stall|barista|cup|roast|milk|shop|store|restaurant|food|tea|chai/.test(text)) {
-    return "cafe_storefront";
+type IsoArchetype =
+  | "universal_vehicle"
+  | "universal_building"
+  | "wildlife_sanctuary"
+  | "polling_station"
+  | "document_printer"
+  | "secure_vault"
+  | "cooling_chamber"
+  | "reefer_transit"
+  | "atmosphere_dome"
+  | "telemetry_beacon"
+  | "conveyor_sorter"
+  | "value_pillars"
+  | "core_cutaway"
+  | "orbital_network";
+
+type IsoVehicleKind = "aircraft" | "train" | "ship" | "rocket" | "car" | "truck";
+type IsoBuildingKind = "skyscraper" | "factory" | "hospital" | "bank" | "school" | "residential";
+
+const ALL_ISO_ARCHETYPES: IsoArchetype[] = [
+  "universal_vehicle",
+  "universal_building",
+  "wildlife_sanctuary",
+  "polling_station",
+  "document_printer",
+  "secure_vault",
+  "telemetry_beacon",
+  "value_pillars",
+  "cooling_chamber",
+  "reefer_transit",
+  "atmosphere_dome",
+  "conveyor_sorter",
+  "core_cutaway",
+  "orbital_network",
+];
+
+function detectTopicTheme(fullText: string): IsoTopicTheme {
+  const s = fullText.toLowerCase();
+  if (/airplane|aircraft|flight|jet|airline|airport|rocket|space|satellite|orbit|isro|nasa|launch|drone|aviation/.test(s)) {
+    return "aviation_space";
   }
-  if (/farm|cherry|bean|ship|cargo|mill|factory|supply|transit|warehouse|port|export|import|truck|logistics/.test(text)) {
-    return "supply_chain";
+  if (/train|railway|metro|bullet train|locomotive|ship|vessel|cargo ship|port|ocean|maritime|submarine|highway|traffic|ev|car|vehicle/.test(s)) {
+    return "maritime_rail";
   }
-  if (/rupee|\u20b9|\$|price|margin|profit|cost|revenue|crore|lakh|tax|money|value|econom|rent|labor/.test(text)) {
-    return "finance_vault";
+  if (/skyscraper|building|city|urban|architecture|hospital|clinic|school|university|college|factory|plant|house|apartment|real estate|bridge|construction/.test(s)) {
+    return "urban_architecture";
   }
-  if (/ram|cpu|server|redis|chip|silicon|memory|code|cloud|ai|network|database|software|gpu/.test(text)) {
-    return "tech_hardware";
+  if (/tiger|lion|leopard|wildlife|animal|forest|ranger|sanctuary|reserve|species|habitat|livestock|elephant|wolf|bear|dog|cat|bird|safari|collar|poach|relocat/.test(s)) {
+    return "wildlife_ecology";
+  }
+  if (/vote|voter|election|ballot|polling|booth|citizen|democra|constituenc|campaign|parliament|senate|government|civic|vvpat|strongroom/.test(s)) {
+    return "civic_governance";
+  }
+  if (/strawberr|fruit|food|harvest|cold|cool|reefer|refrigerat|spoil|fresh|farm|crop|perish|dairy|meat|coffee|tea/.test(s)) {
+    return "cold_chain";
+  }
+  if (/rupee|\u20b9|\$|price|margin|profit|cost|revenue|crore|lakh|tax|money|econom|wealth|invest|bank|stock|market/.test(s)) {
+    return "finance";
+  }
+  if (/cell|brain|dna|protein|virus|med|health|heart|sleep|muscle|bio|drug|patient/.test(s)) {
+    return "bio_science";
+  }
+  if (/solar|battery|grid|power|energy|lithium|wind|nuclear|carbon|climate|fuel|hydrogen/.test(s)) {
+    return "energy";
+  }
+  if (/store|shop|retail|brand|customer|cafe|restaurant|ecommerce|delivery|packaging|consumer/.test(s)) {
+    return "retail";
+  }
+  return "tech_systems";
+}
+
+function detectVehicleKind(text: string): IsoVehicleKind | null {
+  const s = text.toLowerCase();
+  if (/rocket|spacecraft|launch|booster|orbit|isro|nasa|starship/.test(s)) return "rocket";
+  if (/airplane|aircraft|jet|plane|flight|airline|airport|boeing|airbus|fighter/.test(s)) return "aircraft";
+  if (/train|railway|metro|bullet train|locomotive|vande bharat|rail|subway/.test(s)) return "train";
+  if (/ship|vessel|boat|ferry|port|ocean|container|maritime|submarine|navy/.test(s)) return "ship";
+  if (/car|ev|electric vehicle|tesla|taxi|sedan|suv|automobile|traffic/.test(s)) return "car";
+  if (/truck|freight|reefer|lorry|cargo|van|delivery/.test(s)) return "truck";
+  return null;
+}
+
+function detectBuildingKind(text: string): IsoBuildingKind | null {
+  const s = text.toLowerCase();
+  if (/hospital|clinic|medical|icu|doctor|patient|emergency|pharma/.test(s)) return "hospital";
+  if (/factory|plant|manufactur|refinery|power plant|industrial|warehouse|assembly/.test(s)) return "factory";
+  if (/bank|treasury|mint|vault|reserve|exchange|wall street|finance/.test(s)) return "bank";
+  if (/school|university|college|campus|classroom|student|academy|courthouse|capitol/.test(s)) return "school";
+  if (/house|home|apartment|residential|housing|villa|hotel|neighborhood/.test(s)) return "residential";
+  if (/skyscraper|tower|headquarters|office|city|urban|building|architecture|real estate/.test(s)) return "skyscraper";
+  return null;
+}
+
+function hasHumanActivity(text: string): boolean {
+  return /people|person|voter|citizen|crowd|queue|line|agent|officer|worker|customer|patient|user|human|team|staff|student|doctor|public|booth|passenger/.test(
+    text.toLowerCase()
+  );
+}
+
+function hasAnimalActivity(text: string): boolean {
+  return /tiger|lion|leopard|wildlife|animal|species|livestock|elephant|wolf|bear|dog|cat|bird|herd|fauna|big cat|pet|cattle|deer|monkey|whale|dolphin/.test(
+    text.toLowerCase()
+  );
+}
+
+function getThemePalette(theme: IsoTopicTheme) {
+  switch (theme) {
+    case "aviation_space":
+      return { bgTop: "#0c1e38", bgMid: "#050b18", spotlight: "rgba(56, 189, 248, 0.25)", accent: "#38bdf8", secondary: "#f97316", tertiary: "#a78bfa" };
+    case "maritime_rail":
+      return { bgTop: "#0c2233", bgMid: "#050e17", spotlight: "rgba(14, 165, 233, 0.24)", accent: "#0ea5e9", secondary: "#f59e0b", tertiary: "#22c55e" };
+    case "urban_architecture":
+      return { bgTop: "#1a1f2e", bgMid: "#080b12", spotlight: "rgba(99, 102, 241, 0.24)", accent: "#818cf8", secondary: "#34d399", tertiary: "#f59e0b" };
+    case "wildlife_ecology":
+      return { bgTop: "#0e241b", bgMid: "#06120d", spotlight: "rgba(34, 197, 94, 0.24)", accent: "#22c55e", secondary: "#f97316", tertiary: "#38bdf8" };
+    case "civic_governance":
+      return { bgTop: "#131c36", bgMid: "#070c1a", spotlight: "rgba(59, 130, 246, 0.24)", accent: "#38bdf8", secondary: "#f97316", tertiary: "#22c55e" };
+    case "cold_chain":
+      return { bgTop: "#0f222d", bgMid: "#07131a", spotlight: "rgba(56, 189, 248, 0.22)", accent: "#38bdf8", secondary: "#f43f5e", tertiary: "#34d399" };
+    case "finance":
+      return { bgTop: "#1c1917", bgMid: "#090a0f", spotlight: "rgba(245, 158, 11, 0.22)", accent: "#f59e0b", secondary: "#10b981", tertiary: "#38bdf8" };
+    case "bio_science":
+      return { bgTop: "#0d2626", bgMid: "#051214", spotlight: "rgba(20, 184, 166, 0.24)", accent: "#2dd4bf", secondary: "#fb7185", tertiary: "#a78bfa" };
+    case "energy":
+      return { bgTop: "#1f1a10", bgMid: "#080b12", spotlight: "rgba(250, 204, 21, 0.22)", accent: "#facc15", secondary: "#38bdf8", tertiary: "#22c55e" };
+    case "retail":
+      return { bgTop: "#221614", bgMid: "#0b090c", spotlight: "rgba(251, 146, 60, 0.22)", accent: "#fb923c", secondary: "#f43f5e", tertiary: "#34d399" };
+    default:
+      return { bgTop: "#111b33", bgMid: "#060b16", spotlight: "rgba(99, 102, 241, 0.22)", accent: "#60a5fa", secondary: "#f97316", tertiary: "#34d399" };
+  }
+}
+
+/**
+ * Animated 2.5D Isometric Person (legs, walking stride, torso, swinging arms, head).
+ */
+function drawIsoPerson(
+  ctx: SKRSContext2D,
+  ix: number,
+  iy: number,
+  iz: number,
+  isoOx: number,
+  isoOy: number,
+  opts: {
+    shirtTop: string;
+    shirtLeft: string;
+    shirtRight: string;
+    skin?: string;
+    hair?: string;
+    walkPhase?: number;
+    walking?: boolean;
+    raiseArm?: boolean;
+    scale?: number;
+  }
+): void {
+  const s = opts.scale ?? 1;
+  const phase = opts.walkPhase ?? 0;
+  const stride = opts.walking ? Math.sin(phase) * 7 * s : 0;
+  const bob = opts.walking ? Math.abs(Math.sin(phase)) * 3 * s : 0;
+  const skin = opts.skin ?? "#f1c27d";
+  const hair = opts.hair ?? "#1e293b";
+
+  const shadowPt = isoProject(ix, iy, iz, isoOx, isoOy);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.36)";
+  ctx.beginPath();
+  ctx.ellipse(shadowPt.x, shadowPt.y + 2, 13 * s, 7 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  drawIsoBox(ctx, ix - 7 * s + stride * 0.5, iy - 5 * s, iz, 6 * s, 6 * s, 18 * s, isoOx, isoOy, "#334155", "#1e293b", "#0f172a");
+  drawIsoBox(ctx, ix + 1 * s - stride * 0.5, iy + 1 * s, iz, 6 * s, 6 * s, 18 * s, isoOx, isoOy, "#475569", "#334155", "#1e293b");
+
+  const torsoZ = iz + 18 * s + bob;
+  drawIsoBox(ctx, ix - 8 * s, iy - 7 * s, torsoZ, 16 * s, 14 * s, 22 * s, isoOx, isoOy, opts.shirtTop, opts.shirtLeft, opts.shirtRight);
+
+  const armLift = opts.raiseArm ? 12 * s : -stride * 0.4;
+  drawIsoBox(ctx, ix - 11 * s, iy - 4 * s, torsoZ + 6 * s, 4 * s, 5 * s, 14 * s, isoOx, isoOy, opts.shirtLeft, opts.shirtRight, "#0f172a");
+  drawIsoBox(ctx, ix + 8 * s, iy - 2 * s, torsoZ + 6 * s + armLift * 0.4, 4 * s, 5 * s, 14 * s, isoOx, isoOy, opts.shirtTop, opts.shirtLeft, opts.shirtRight);
+
+  const headZ = torsoZ + 23 * s;
+  drawIsoBox(ctx, ix - 6 * s, iy - 6 * s, headZ, 12 * s, 12 * s, 12 * s, isoOx, isoOy, skin, "#d99b66", "#b87b48");
+  drawIsoBox(ctx, ix - 6.5 * s, iy - 6.5 * s, headZ + 9 * s, 13 * s, 13 * s, 4 * s, isoOx, isoOy, hair, hair, "#090d16");
+}
+
+/**
+ * Animated 2.5D Isometric Animal (tigers, deer/wildlife, livestock, pets).
+ */
+function drawIsoAnimal(
+  ctx: SKRSContext2D,
+  ix: number,
+  iy: number,
+  iz: number,
+  isoOx: number,
+  isoOy: number,
+  opts: {
+    bodyTop: string;
+    bodyLeft: string;
+    bodyRight: string;
+    stripes?: boolean;
+    gpsCollar?: boolean;
+    walkPhase?: number;
+    walking?: boolean;
+    scale?: number;
+  }
+): void {
+  const s = opts.scale ?? 1;
+  const phase = opts.walkPhase ?? 0;
+  const stride = opts.walking ? Math.sin(phase) * 6 * s : 0;
+  const bob = opts.walking ? Math.abs(Math.sin(phase)) * 2.5 * s : 0;
+  const tailSwing = Math.sin(phase * 1.4) * 9 * s;
+
+  const shadowPt = isoProject(ix, iy, iz, isoOx, isoOy);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.38)";
+  ctx.beginPath();
+  ctx.ellipse(shadowPt.x, shadowPt.y + 3, 24 * s, 11 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  drawIsoBox(ctx, ix + 10 * s + stride * 0.5, iy - 7 * s, iz, 5 * s, 5 * s, 13 * s, isoOx, isoOy, opts.bodyLeft, opts.bodyRight, "#0f172a");
+  drawIsoBox(ctx, ix + 10 * s - stride * 0.5, iy + 3 * s, iz, 5 * s, 5 * s, 13 * s, isoOx, isoOy, opts.bodyTop, opts.bodyLeft, opts.bodyRight);
+  drawIsoBox(ctx, ix - 13 * s - stride * 0.5, iy - 7 * s, iz, 5 * s, 5 * s, 13 * s, isoOx, isoOy, opts.bodyLeft, opts.bodyRight, "#0f172a");
+  drawIsoBox(ctx, ix - 13 * s + stride * 0.5, iy + 3 * s, iz, 5 * s, 5 * s, 13 * s, isoOx, isoOy, opts.bodyTop, opts.bodyLeft, opts.bodyRight);
+
+  const bodyZ = iz + 12 * s + bob;
+  drawIsoBox(ctx, ix - 16 * s, iy - 8 * s, bodyZ, 32 * s, 16 * s, 15 * s, isoOx, isoOy, opts.bodyTop, opts.bodyLeft, opts.bodyRight);
+
+  if (opts.stripes) {
+    drawIsoBox(ctx, ix - 8 * s, iy - 8.5 * s, bodyZ + 4 * s, 4 * s, 17 * s, 11.5 * s, isoOx, isoOy, "#0f172a", "#020617", "#020617");
+    drawIsoBox(ctx, ix + 2 * s, iy - 8.5 * s, bodyZ + 4 * s, 4 * s, 17 * s, 11.5 * s, isoOx, isoOy, "#0f172a", "#020617", "#020617");
+  }
+  if (opts.gpsCollar) {
+    drawIsoBox(ctx, ix + 13 * s, iy - 8.5 * s, bodyZ + 3 * s, 4.5 * s, 17 * s, 12.5 * s, isoOx, isoOy, "#38bdf8", "#0284c7", "#0369a1");
   }
 
-  // Fallback rotation across non-hardware universal isometric models
-  const fallback: Array<"supply_chain" | "finance_vault" | "tech_hardware"> = [
-    "supply_chain",
-    "finance_vault",
-    "tech_hardware",
-  ];
-  return fallback[sceneIdx % fallback.length]!;
+  drawIsoBox(ctx, ix - 26 * s, iy - 2 * s + tailSwing * 0.35, bodyZ + 9 * s, 11 * s, 4 * s, 4 * s, isoOx, isoOy, opts.bodyTop, opts.bodyLeft, "#0f172a");
+
+  const headZ = bodyZ + 7 * s;
+  drawIsoBox(ctx, ix + 14 * s, iy - 7 * s, headZ, 13 * s, 14 * s, 13 * s, isoOx, isoOy, opts.bodyTop, opts.bodyLeft, opts.bodyRight);
+  drawIsoBox(ctx, ix + 25 * s, iy - 4.5 * s, headZ, 5 * s, 9 * s, 7 * s, isoOx, isoOy, "#fef3c7", "#fde68a", "#fcd34d");
+  drawIsoBox(ctx, ix + 16 * s, iy - 6.5 * s, headZ + 12 * s, 3.5 * s, 3.5 * s, 4 * s, isoOx, isoOy, opts.bodyLeft, "#0f172a", "#020617");
+  drawIsoBox(ctx, ix + 16 * s, iy + 3 * s, headZ + 12 * s, 3.5 * s, 3.5 * s, 4 * s, isoOx, isoOy, opts.bodyLeft, "#0f172a", "#020617");
+}
+
+/**
+ * Universal 2.5D Isometric Vehicle Renderer:
+ * Supports Aircraft / Jetliner, High-Speed Train, Cargo Ship, Space Rocket, Car/EV, and Freight Truck.
+ */
+function drawIsoVehicle(
+  ctx: SKRSContext2D,
+  kind: IsoVehicleKind,
+  isoOx: number,
+  isoOy: number,
+  sceneProgress: number,
+  buildIn: number,
+  accent: string,
+  secondary: string
+): void {
+  if (kind === "aircraft") {
+    // Cloud Deck + Runway Grid
+    drawIsoBox(ctx, -230, -140, -14, 460, 280, 14, isoOx, isoOy, "#0f172a", "#090d16", "#020617");
+    const flyX = -95 + sceneProgress * 185;
+    const flyZ = 68 + Math.sin(sceneProgress * Math.PI) * 32;
+    // Contrail ribbons behind engines
+    for (let c = 1; c <= 4; c++) {
+      const trailPt = isoProject(flyX - 85 - c * 28, 0, flyZ + 12, isoOx, isoOy);
+      ctx.fillStyle = `rgba(224, 242, 254, ${0.55 - c * 0.11})`;
+      ctx.beginPath();
+      ctx.arc(trailPt.x, trailPt.y, 12 - c * 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Fuselage + Cockpit + Swept Wings + Tail Fin
+    drawIsoBox(ctx, flyX - 80, -18, flyZ, 165, 36, 30 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, flyX + 62, -14, flyZ + 6, 26, 28, 18 * buildIn, isoOx, isoOy, "#38bdf8", "#0284c7", "#0369a1");
+    drawIsoBox(ctx, flyX - 24, -110, flyZ + 8, 52, 220, 8 * buildIn, isoOx, isoOy, accent, "#0284c7", "#0369a1");
+    drawIsoBox(ctx, flyX - 78, -6, flyZ + 30 * buildIn, 28, 12, 34 * buildIn, isoOx, isoOy, secondary, "#ea580c", "#c2410c");
+  } else if (kind === "train") {
+    // Ballast Track Bed + Steel Rails + Multi-Car High-Speed Bullet Train
+    drawIsoBox(ctx, -235, -115, -14, 470, 230, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    drawIsoBox(ctx, -225, -24, 0, 450, 6, 4, isoOx, isoOy, "#94a3b8", "#64748b", "#475569");
+    drawIsoBox(ctx, -225, 18, 0, 450, 6, 4, isoOx, isoOy, "#94a3b8", "#64748b", "#475569");
+    const trainX = -135 + sceneProgress * 155;
+    // Rear Passenger Coach
+    drawIsoBox(ctx, trainX - 115, -26, 5, 120, 52, 46 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, trainX - 115, -27, 26 * buildIn, 120, 54, 10, isoOx, isoOy, accent, "#0284c7", "#0369a1");
+    // Aerodynamic Locomotive Nose Car
+    drawIsoBox(ctx, trainX + 14, -26, 5, 125, 52, 46 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, trainX + 14, -27, 26 * buildIn, 125, 54, 10, isoOx, isoOy, secondary, "#ea580c", "#c2410c");
+    drawIsoBox(ctx, trainX + 115, -20, 14, 24, 40, 26 * buildIn, isoOx, isoOy, "#38bdf8", "#0284c7", "#0369a1");
+  } else if (kind === "ship") {
+    // Ocean Water Basin + Animated Wake Ripples + Container Cargo Vessel
+    drawIsoBox(ctx, -230, -145, -14, 460, 290, 14, isoOx, isoOy, "#0369a1", "#075985", "#0c4a6e");
+    const shipX = -80 + sceneProgress * 135;
+    // Hull + Deck + Bridge Tower + Stacked ISO Containers
+    drawIsoBox(ctx, shipX - 125, -48, 0, 250, 96, 36 * buildIn, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    drawIsoBox(ctx, shipX - 115, -42, 36 * buildIn, 230, 84, 8, isoOx, isoOy, "#475569", "#334155", "#1e293b");
+    drawIsoBox(ctx, shipX - 105, -28, 44 * buildIn, 38, 56, 58 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, shipX - 45, -34, 44 * buildIn, 64, 68, 34 * buildIn, isoOx, isoOy, secondary, "#e11d48", "#be123c");
+    drawIsoBox(ctx, shipX + 26, -34, 44 * buildIn, 64, 68, 42 * buildIn, isoOx, isoOy, accent, "#0284c7", "#0369a1");
+  } else if (kind === "rocket") {
+    // Launch Pad + Gantry Tower + Vertical Liftoff Rocket + Exhaust Plume
+    drawIsoBox(ctx, -195, -195, -14, 390, 390, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    // Launch Umbilical Gantry
+    drawIsoBox(ctx, -88, -32, 0, 26, 26, 175 * buildIn, isoOx, isoOy, "#64748b", "#475569", "#334155");
+    const liftZ = 14 + Math.pow(sceneProgress, 1.5) * 145;
+    // Exhaust Flame Plume
+    const flamePt = isoProject(0, 0, Math.max(4, liftZ - 12), isoOx, isoOy);
+    ctx.fillStyle = "rgba(249, 115, 22, 0.78)";
+    ctx.beginPath();
+    ctx.arc(flamePt.x, flamePt.y + 10, 24 + Math.sin(sceneProgress * 30) * 5, 0, Math.PI * 2);
+    ctx.fill();
+    // Main Booster + Fairing Cone
+    drawIsoBox(ctx, -22, -22, liftZ, 44, 44, 128 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, -23, -23, liftZ + 55 * buildIn, 46, 46, 18, isoOx, isoOy, secondary, "#ea580c", "#c2410c");
+    drawIsoBox(ctx, -15, -15, liftZ + 128 * buildIn, 30, 30, 34 * buildIn, isoOx, isoOy, accent, "#0284c7", "#0369a1");
+  } else if (kind === "car") {
+    // Urban EV / Passenger Car Gliding on Smart Roadway
+    drawIsoBox(ctx, -225, -120, -14, 450, 240, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    for (let d = 0; d < 5; d++) {
+      const dashX = 180 - ((sceneProgress * 420 + d * 95) % 420);
+      drawIsoBox(ctx, dashX, 0, 1, 38, 10, 2, isoOx, isoOy, "#64748b", "#475569", "#334155");
+    }
+    const carX = -75 + sceneProgress * 150;
+    drawIsoBox(ctx, carX - 58, -32, 12, 116, 64, 28 * buildIn, isoOx, isoOy, accent, "#0284c7", "#0369a1");
+    drawIsoBox(ctx, carX - 32, -26, 40 * buildIn, 66, 52, 24 * buildIn, isoOx, isoOy, "#e0f2fe", "#7dd3fc", "#38bdf8");
+    [-36, 32].forEach((wx) => {
+      drawIsoBox(ctx, carX + wx, -36, 0, 20, 72, 16, isoOx, isoOy, "#0f172a", "#020617", "#1e293b");
+    });
+  } else {
+    // Freight / Delivery Truck
+    drawIsoBox(ctx, -230, -120, -14, 460, 240, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    const truckOffset = -45 + sceneProgress * 95;
+    drawIsoBox(ctx, truckOffset - 115, -46, 18, 155, 92, 92 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, truckOffset - 115, -48, 52 * buildIn, 155, 96, 16, isoOx, isoOy, accent, "#0284c7", "#0369a1");
+    drawIsoBox(ctx, truckOffset + 46, -42, 18, 58, 84, 72 * buildIn, isoOx, isoOy, secondary, "#be123c", "#881337");
+    [-85, -35, 68].forEach((wx) => {
+      drawIsoBox(ctx, truckOffset + wx, -50, 0, 24, 100, 22, isoOx, isoOy, "#0f172a", "#020617", "#1e293b");
+    });
+  }
+}
+
+/**
+ * Universal 2.5D Isometric Building Renderer:
+ * Supports Skyscraper/HQ, Factory/Power Plant, Hospital/Lab, Bank/Treasury, School/Civic Dome, and Residential Homes.
+ */
+function drawIsoBuilding(
+  ctx: SKRSContext2D,
+  kind: IsoBuildingKind,
+  isoOx: number,
+  isoOy: number,
+  sceneProgress: number,
+  buildIn: number,
+  accent: string,
+  secondary: string,
+  tertiary: string
+): void {
+  drawIsoBox(ctx, -210, -175, -14, 420, 350, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+
+  if (kind === "skyscraper") {
+    // Glass Curtain-Wall Tower + Illuminated Floors + Communication Spire
+    drawIsoBox(ctx, -78, -78, 0, 156, 156, 210 * buildIn, isoOx, isoOy, "#38bdf8", "#0284c7", "#0369a1");
+    for (let fl = 1; fl <= 4; fl++) {
+      const fz = fl * 42 * buildIn;
+      drawIsoBox(ctx, -80, -80, fz, 160, 160, 7, isoOx, isoOy, "#e0f2fe", "#bae6fd", "#7dd3fc");
+    }
+    drawIsoBox(ctx, -10, -10, 210 * buildIn, 20, 20, 56 * buildIn, isoOx, isoOy, secondary, "#ea580c", "#c2410c");
+  } else if (kind === "factory") {
+    // Industrial Plant Hall + Twin Cooling/Exhaust Stacks + Animated Steam Plumes
+    drawIsoBox(ctx, -145, -85, 0, 235, 165, 92 * buildIn, isoOx, isoOy, "#64748b", "#475569", "#334155");
+    drawIsoBox(ctx, -135, -75, 92 * buildIn, 215, 145, 16 * buildIn, isoOx, isoOy, accent, "#0284c7", "#0369a1");
+    [95, 138].forEach((sx, idx) => {
+      drawIsoBox(ctx, sx, -55, 0, 28, 28, 155 * buildIn, isoOx, isoOy, "#94a3b8", "#64748b", "#475569");
+      const puffProg = (sceneProgress * 2.0 + idx * 0.4) % 1;
+      const puffPt = isoProject(sx + 14 + puffProg * 35, -41, 160 * buildIn + puffProg * 55, isoOx, isoOy);
+      ctx.fillStyle = `rgba(226, 232, 240, ${(1 - puffProg) * 0.65})`;
+      ctx.beginPath();
+      ctx.arc(puffPt.x, puffPt.y, 12 + puffProg * 14, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  } else if (kind === "hospital") {
+    // Clinical Medical Campus + Rooftop Medical Cross Emblem
+    drawIsoBox(ctx, -135, -90, 0, 270, 175, 118 * buildIn, isoOx, isoOy, "#f8fafc", "#e2e8f0", "#cbd5e1");
+    drawIsoBox(ctx, -135, -92, 62 * buildIn, 270, 179, 12, isoOx, isoOy, "#0ea5e9", "#0284c7", "#0369a1");
+    // Red Medical Cross on Roof
+    drawIsoBox(ctx, -32, -10, 118 * buildIn, 64, 20, 10 * buildIn, isoOx, isoOy, "#ef4444", "#dc2626", "#b91c1c");
+    drawIsoBox(ctx, -10, -32, 118 * buildIn, 20, 64, 10 * buildIn, isoOx, isoOy, "#ef4444", "#dc2626", "#b91c1c");
+  } else if (kind === "bank") {
+    // Pillared Financial Reserve / Central Bank + Gold Core
+    drawIsoBox(ctx, -135, -95, 0, 270, 190, 20 * buildIn, isoOx, isoOy, "#94a3b8", "#64748b", "#475569");
+    drawIsoBox(ctx, -115, -75, 20 * buildIn, 230, 150, 96 * buildIn, isoOx, isoOy, "#e2e8f0", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, -125, -85, 116 * buildIn, 250, 170, 24 * buildIn, isoOx, isoOy, "#f59e0b", "#d97706", "#b45309");
+  } else if (kind === "school") {
+    // Academic / Civic Campus Building + Clock/Flag Spire
+    drawIsoBox(ctx, -145, -85, 0, 290, 165, 96 * buildIn, isoOx, isoOy, "#fb923c", "#ea580c", "#c2410c");
+    drawIsoBox(ctx, -38, -38, 96 * buildIn, 76, 76, 46 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, -6, -6, 142 * buildIn, 12, 12, 42 * buildIn, isoOx, isoOy, accent, "#0284c7", "#0369a1");
+  } else {
+    // Residential / Housing Neighborhood Cluster (2 Modern Houses)
+    drawIsoBox(ctx, -140, -65, 0, 115, 115, 76 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, -146, -71, 76 * buildIn, 127, 127, 22 * buildIn, isoOx, isoOy, secondary, "#e11d48", "#be123c");
+    drawIsoBox(ctx, 25, -55, 0, 115, 115, 92 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, 19, -61, 92 * buildIn, 127, 127, 22 * buildIn, isoOx, isoOy, tertiary, "#059669", "#047857");
+  }
+}
+
+function rankArchetypesForBeat(beatText: string, theme: IsoTopicTheme): IsoArchetype[] {
+  const s = beatText.toLowerCase();
+  const ranked: IsoArchetype[] = [];
+
+  if (detectVehicleKind(s)) ranked.push("universal_vehicle");
+  if (detectBuildingKind(s)) ranked.push("universal_building");
+  if (/tiger|lion|leopard|wildlife|animal|forest|ranger|sanctuary|reserve|habitat|livestock|collar|cage|big cat/.test(s)) ranked.push("wildlife_sanctuary");
+  if (/booth|polling|voter|citizen|queue|station|biometric|cast|line/.test(s)) ranked.push("polling_station");
+  if (/vvpat|paper|slip|print|ballot|audit|receipt|record|document|verify/.test(s)) ranked.push("document_printer");
+  if (/strongroom|vault|seal|cctv|tamper|lock|security|guard|safe|protect/.test(s)) ranked.push("secure_vault");
+  if (/counting|hub|district|live|result|telemetry|signal|real-time|network|iot|sensor/.test(s)) ranked.push("telemetry_beacon");
+  if (/tally|count|100 million|percent|cost|price|dollar|\$|rupee|\u20b9|profit|margin|constituenc/.test(s)) ranked.push("value_pillars");
+  if (/cool|temp|33|75|chill|freeze|thermal|heat|harvest|pre-cool|chamber/.test(s)) ranked.push("cooling_chamber");
+  if (/oxygen|carbon|gas|atmosphere|liner|co2|o2|respirat/.test(s)) ranked.push("atmosphere_dome");
+  if (/sort|warehouse|shelf|hour|72|automat|conveyor|pack|distribut|retail/.test(s)) ranked.push("conveyor_sorter");
+  if (/layer|core|inside|anatomy|structure|system|chip|engine/.test(s)) ranked.push("core_cutaway");
+  if (/global|connect|orbit|ecosystem|chain/.test(s)) ranked.push("orbital_network");
+
+  if (theme === "aviation_space" || theme === "maritime_rail") {
+    for (const a of ["universal_vehicle", "telemetry_beacon", "orbital_network", "universal_building", "value_pillars"] as IsoArchetype[]) {
+      if (!ranked.includes(a)) ranked.push(a);
+    }
+  } else if (theme === "urban_architecture") {
+    for (const a of ["universal_building", "universal_vehicle", "value_pillars", "core_cutaway", "telemetry_beacon"] as IsoArchetype[]) {
+      if (!ranked.includes(a)) ranked.push(a);
+    }
+  } else if (theme === "wildlife_ecology") {
+    for (const a of ["wildlife_sanctuary", "telemetry_beacon", "universal_vehicle", "orbital_network", "value_pillars"] as IsoArchetype[]) {
+      if (!ranked.includes(a)) ranked.push(a);
+    }
+  } else if (theme === "civic_governance") {
+    for (const a of ["polling_station", "document_printer", "secure_vault", "telemetry_beacon", "value_pillars"] as IsoArchetype[]) {
+      if (!ranked.includes(a)) ranked.push(a);
+    }
+  } else if (theme === "cold_chain") {
+    for (const a of ["cooling_chamber", "reefer_transit", "atmosphere_dome", "telemetry_beacon", "conveyor_sorter"] as IsoArchetype[]) {
+      if (!ranked.includes(a)) ranked.push(a);
+    }
+  }
+  for (const a of ALL_ISO_ARCHETYPES) {
+    if (!ranked.includes(a)) ranked.push(a);
+  }
+  return ranked;
+}
+
+const deterministicVideoPlanCache = new Map<string, IsoArchetype[]>();
+
+function getUniqueArchetypeForScene(
+  videoKey: string,
+  beat: DynamicStoryboardBeat,
+  sceneIdx: number,
+  sceneCount: number,
+  theme: IsoTopicTheme
+): IsoArchetype {
+  let plan = deterministicVideoPlanCache.get(videoKey);
+  if (!plan) {
+    plan = [];
+    deterministicVideoPlanCache.set(videoKey, plan);
+  }
+  if (plan[sceneIdx]) return plan[sceneIdx]!;
+
+  const used = new Set(plan.filter(Boolean));
+  const beatStr = `${beat.beatSummary || ""} ${beat.propTitle || ""} ${(beat.propMetrics || []).join(" ")}`;
+  const candidates = rankArchetypesForBeat(beatStr, theme);
+  const chosen = candidates.find((c) => !used.has(c)) ?? ALL_ISO_ARCHETYPES[sceneIdx % ALL_ISO_ARCHETYPES.length]!;
+  plan[sceneIdx] = chosen;
+  return chosen;
+}
+
+function drawFittingPill(
+  ctx: SKRSContext2D,
+  cx: number,
+  cy: number,
+  text: string,
+  accentColor: string,
+  maxWidth: number
+): void {
+  const clean = text.trim().toUpperCase();
+  if (!clean) return;
+  let fontSize = 20;
+  ctx.font = `900 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+  while (ctx.measureText(clean).width > maxWidth - 52 && fontSize > 13) {
+    fontSize -= 1;
+    ctx.font = `900 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+  }
+  const pillW = Math.min(maxWidth, Math.max(220, ctx.measureText(clean).width + 54));
+  const pillH = 44;
+  drawRoundedRect(ctx, cx - pillW / 2, cy - pillH / 2, pillW, pillH, pillH / 2);
+  ctx.fillStyle = "rgba(9, 14, 26, 0.90)";
+  ctx.fill();
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+
+  ctx.fillStyle = "#f8fafc";
+  ctx.textAlign = "center";
+  ctx.fillText(clean, cx, cy + Math.round(fontSize * 0.35));
 }
 
 function renderIsometricTechScene(
@@ -805,28 +1324,37 @@ function renderIsometricTechScene(
   w: number,
   h: number,
   t: number,
+  videoTitle: string,
   beat: DynamicStoryboardBeat,
   sceneIdx: number,
   sceneCount: number,
   sceneProgress: number
 ): void {
   const cx = w * 0.5;
-  const cy = h * 0.45;
-  const pop = easeOutBack(Math.min(1, sceneProgress * 3.4));
-  const reveal = easeOutCubic(Math.min(1, sceneProgress * 2.1));
-  const domain = detectIsometricDomain(beat, sceneIdx);
+  const cy = h * 0.44;
+  const fullContext = `${videoTitle} ${beat.beatSummary || ""} ${beat.propTitle || ""}`;
+  const theme = detectTopicTheme(fullContext);
+  const showPeople = hasHumanActivity(fullContext) || theme === "civic_governance" || theme === "retail" || theme === "wildlife_ecology";
+  const showAnimals = hasAnimalActivity(fullContext) || theme === "wildlife_ecology";
+  const palette = getThemePalette(theme);
+  const archetype = getUniqueArchetypeForScene(`${videoTitle}::${sceneCount}`, beat, sceneIdx, sceneCount, theme);
 
-  // 1. Deep Obsidian-Slate Studio Backdrop + Perspective Technical Grid
-  const bg = ctx.createRadialGradient(cx, cy - 30, 50, cx, cy, h * 0.78);
-  bg.addColorStop(0, domain === "cafe_storefront" ? "#1e1612" : "#111c33");
-  bg.addColorStop(0.52, "#070c17");
-  bg.addColorStop(1, "#020409");
+  const buildIn = easeOutCubic(Math.min(1, sceneProgress / 0.22));
+  const activeFlow = Math.max(0, Math.min(1, (sceneProgress - 0.1) / 0.9));
+  const smoothCameraScale = 1.08 + sceneProgress * 0.11;
+  const smoothPanX = (sceneIdx % 2 === 0 ? -1 : 1) * (sceneProgress - 0.5) * 24;
+
+  // 1. Studio Backdrop + Grid
+  const bg = ctx.createRadialGradient(cx, cy - 40, 40, cx, cy, h * 0.8);
+  bg.addColorStop(0, palette.bgTop);
+  bg.addColorStop(0.55, palette.bgMid);
+  bg.addColorStop(1, "#020408");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
-  ctx.strokeStyle = "rgba(148, 163, 184, 0.065)";
-  ctx.lineWidth = 1.5;
-  const gridStep = 54;
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.055)";
+  ctx.lineWidth = 1.25;
+  const gridStep = 56;
   for (let gx = 0; gx <= w; gx += gridStep) {
     ctx.beginPath();
     ctx.moveTo(gx, 0);
@@ -840,25 +1368,17 @@ function renderIsometricTechScene(
     ctx.stroke();
   }
 
-  // Ambient Stage Spotlight tailored to topic domain
-  const stageGlow = ctx.createRadialGradient(cx, cy + 20, 30, cx, cy + 20, 440);
-  stageGlow.addColorStop(
-    0,
-    domain === "cafe_storefront"
-      ? "rgba(217, 119, 6, 0.22)"
-      : domain === "finance_vault"
-        ? "rgba(16, 185, 129, 0.18)"
-        : "rgba(56, 189, 248, 0.16)"
-  );
+  const stageGlow = ctx.createRadialGradient(cx, cy + 10, 20, cx, cy + 10, 430);
+  stageGlow.addColorStop(0, palette.spotlight);
   stageGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = stageGlow;
   ctx.fillRect(0, 0, w, h);
 
-  // 2. Top Chapter Timeline Stepper (01 .. N)
+  // 2. Top Chapter Stepper
   const totalSteps = Math.min(6, Math.max(3, sceneCount));
-  const topY = 88;
-  const barStartX = 88;
-  const barEndX = w - 168;
+  const topY = 82;
+  const barStartX = 84;
+  const barEndX = w - 166;
   const stepSpan = (barEndX - barStartX) / Math.max(1, totalSteps - 1);
 
   ctx.strokeStyle = "rgba(148, 163, 184, 0.24)";
@@ -869,248 +1389,505 @@ function renderIsometricTechScene(
   ctx.stroke();
 
   const activeStep = Math.min(totalSteps - 1, sceneIdx);
-  ctx.strokeStyle = "#f97316";
+  ctx.strokeStyle = palette.accent;
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(barStartX, topY);
-  ctx.lineTo(barStartX + stepSpan * Math.min(totalSteps - 1, activeStep + sceneProgress * 0.85), topY);
+  ctx.lineTo(barStartX + stepSpan * Math.min(totalSteps - 1, activeStep + sceneProgress), topY);
   ctx.stroke();
 
   for (let i = 0; i < totalSteps; i++) {
     const sx = barStartX + i * stepSpan;
     const isCur = i === activeStep;
     const isPast = i < activeStep;
-    ctx.fillStyle = isCur ? "#f97316" : isPast ? "#1e293b" : "#0f172a";
+    ctx.fillStyle = isCur ? palette.accent : isPast ? "#1e293b" : "#0f172a";
     ctx.beginPath();
-    ctx.arc(sx, topY, isCur ? 19 : 14, 0, Math.PI * 2);
+    ctx.arc(sx, topY, isCur ? 18 : 13, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = isCur ? "#fdba74" : isPast ? "#f97316" : "#475569";
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = isCur ? "#ffffff" : isPast ? palette.accent : "#475569";
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    ctx.fillStyle = isCur ? "#090d16" : "#cbd5e1";
-    ctx.font = "bold 14px 'Segoe UI', Arial, sans-serif";
+    ctx.fillStyle = isCur ? "#050911" : "#cbd5e1";
+    ctx.font = "bold 13px 'Segoe UI', Arial, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(String(i + 1).padStart(2, "0"), sx, topY + 5);
   }
 
-  drawRoundedRect(ctx, w - 138, topY - 17, 90, 34, 17);
-  ctx.fillStyle = "rgba(249, 115, 22, 0.16)";
+  drawRoundedRect(ctx, w - 138, topY - 16, 90, 32, 16);
+  ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
   ctx.fill();
-  ctx.strokeStyle = "rgba(249, 115, 22, 0.55)";
+  ctx.strokeStyle = palette.accent;
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.fillStyle = "#fb923c";
+  ctx.fillStyle = palette.accent;
   ctx.font = "bold 14px 'Segoe UI', Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(`0${activeStep + 1}/0${totalSteps}`, w - 93, topY + 5);
 
-  // 3. Clean Beat Header Pill
-  const rawMetrics = (beat.propMetrics ?? []).filter((m) => m && !/^PHASE\s*\d/i.test(m.trim()));
-  const summaryPhrases = (beat.beatSummary || "")
+  // 3. Extract Real Metrics Only
+  const cleanedMetrics = (beat.propMetrics ?? [])
+    .map((m) => String(m ?? "").trim())
+    .filter((m) => m.length >= 2 && !/^PHASE\s*\d/i.test(m));
+
+  const fallbackPhrases = (beat.beatSummary || "")
     .split(/[,.;:|\-]+/)
     .map((x) => x.trim())
-    .filter((x) => x.length >= 4);
-  const metrics = [
-    rawMetrics[0] || summaryPhrases[0] || "STAGE ONE",
-    rawMetrics[1] || summaryPhrases[1] || "VALUE ADDED",
-    rawMetrics[2] || summaryPhrases[2] || "FINAL IMPACT",
-  ];
-  const rawTitle = (beat.propTitle || beat.beatSummary || "").trim();
-  const titleBadge = (!rawTitle || /^PHASE\s*\d/i.test(rawTitle) ? metrics[0]! : rawTitle).toUpperCase();
+    .filter((x) => x.length >= 4 && x.length <= 42);
 
-  const variant: "info" | "success" | "danger" =
-    sceneIdx === sceneCount - 1
-      ? "success"
-      : sceneIdx % 3 === 1
-        ? "danger"
-        : "info";
+  const metrics: string[] = [];
+  for (const cand of [...cleanedMetrics, ...fallbackPhrases]) {
+    if (!metrics.some((existing) => existing.toLowerCase() === cand.toLowerCase())) {
+      metrics.push(cand);
+    }
+    if (metrics.length === 3) break;
+  }
+  if (metrics.length === 0) metrics.push(videoTitle.slice(0, 36));
 
-  drawStatusPill(ctx, cx, 185, titleBadge, variant, pop);
+  const rawTitle = (beat.propTitle || beat.beatSummary || videoTitle).trim();
+  const headerTitle = !rawTitle || /^PHASE\s*\d/i.test(rawTitle) ? metrics[0]! : rawTitle;
+  drawFittingPill(ctx, cx, 170, headerTitle, palette.accent, w - 110);
 
-  // 4. Topic-Aware 2.5D Isometric Stage
-  const floatY = Math.sin(t * 2.4) * 7;
-  const cameraZoom = 1.18 + Math.sin(sceneProgress * Math.PI) * 0.08;
-  const isoOx = cx + Math.sin(t * 1.1) * 8;
-  const isoOy = cy + 45 + floatY;
+  // 4. Continuous-Motion 2.5D Illustrated Stage
+  const isoOx = cx + smoothPanX;
+  const isoOy = cy + 52;
 
   ctx.save();
   ctx.translate(isoOx, isoOy);
-  ctx.scale((0.88 + 0.14 * pop) * cameraZoom, (0.88 + 0.14 * pop) * cameraZoom);
+  ctx.scale(smoothCameraScale * (0.92 + 0.08 * buildIn), smoothCameraScale * (0.92 + 0.08 * buildIn));
   ctx.translate(-isoOx, -isoOy);
 
-  if (domain === "cafe_storefront") {
-    // ISOMETRIC CAF? STALL, ESPRESSO COUNTER & GIANT STEAMING COFFEE CUP
-    // Warm Wooden Caf? Floor Platform
-    drawIsoBox(ctx, -200, -145, -16, 400, 290, 16, isoOx, isoOy, "#92400e", "#78350f", "#451a03");
+  if (archetype === "universal_vehicle") {
+    const vKind = detectVehicleKind(fullContext) ?? "aircraft";
+    drawIsoVehicle(ctx, vKind, isoOx, isoOy, sceneProgress, buildIn, palette.accent, palette.secondary);
+    if (showPeople && (vKind === "train" || vKind === "car")) {
+      drawIsoPerson(ctx, -110, 82, 0, isoOx, isoOy, {
+        shirtTop: palette.tertiary,
+        shirtLeft: "#16a34a",
+        shirtRight: "#15803d",
+        walking: true,
+        walkPhase: sceneProgress * 14,
+        scale: 0.9,
+      });
+    }
+    const vLbl = isoProject(0, 0, 142 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, vLbl.x, vLbl.y, metrics[0]!, palette.accent);
+  } else if (archetype === "universal_building") {
+    const bKind = detectBuildingKind(fullContext) ?? "skyscraper";
+    drawIsoBuilding(ctx, bKind, isoOx, isoOy, sceneProgress, buildIn, palette.accent, palette.secondary, palette.tertiary);
+    if (showPeople) {
+      drawIsoPerson(ctx, -95 + sceneProgress * 110, 128, 0, isoOx, isoOy, {
+        shirtTop: palette.secondary,
+        shirtLeft: "#ea580c",
+        shirtRight: "#c2410c",
+        walking: true,
+        walkPhase: sceneProgress * 16,
+        scale: 0.92,
+      });
+      drawIsoPerson(ctx, 85, 132, 0, isoOx, isoOy, {
+        shirtTop: palette.accent,
+        shirtLeft: "#0284c7",
+        shirtRight: "#0369a1",
+        raiseArm: true,
+        scale: 0.92,
+      });
+    }
+    const bLbl = isoProject(0, 0, 168 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, bLbl.x, bLbl.y, metrics[0]!, palette.accent);
+  } else if (archetype === "wildlife_sanctuary") {
+    drawIsoBox(ctx, -215, -155, -14, 430, 310, 14, isoOx, isoOy, "#14532d", "#052e16", "#022c22");
+    const trees = [
+      { tx: -165, ty: -115, h: 68 },
+      { tx: -95, ty: -125, h: 82 },
+      { tx: 145, ty: -110, h: 74 },
+      { tx: 165, ty: 85, h: 64 },
+    ];
+    trees.forEach((tr) => {
+      drawIsoBox(ctx, tr.tx - 6, tr.ty - 6, 0, 12, 12, tr.h * 0.45 * buildIn, isoOx, isoOy, "#78350f", "#451a03", "#271003");
+      drawIsoBox(ctx, tr.tx - 24, tr.ty - 24, tr.h * 0.4 * buildIn, 48, 48, tr.h * 0.55 * buildIn, isoOx, isoOy, "#22c55e", "#16a34a", "#15803d");
+    });
 
-    // Back Caf? Wall & Striped Awning Roof
-    drawIsoBox(ctx, -185, -135, 0, 350, 26, 175 * reveal, isoOx, isoOy, "#fef3c7", "#fde68a", "#d97706");
-    for (let sIdx = 0; sIdx < 6; sIdx++) {
-      const sx = -185 + sIdx * 58;
-      const isAmber = sIdx % 2 === 0;
+    drawIsoBox(ctx, 45, -95, 0, 26, 26, 95 * buildIn, isoOx, isoOy, "#38bdf8", "#0284c7", "#0369a1");
+    const camTop = isoProject(58, -82, 102 * buildIn, isoOx, isoOy);
+    const pulseProg = (sceneProgress * 2.2) % 1;
+    ctx.strokeStyle = `rgba(56, 189, 248, ${(1 - pulseProg) * 0.85})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(camTop.x, camTop.y, 18 + pulseProg * 110, 10 + pulseProg * 60, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const tigerX = -110 + sceneProgress * 155;
+    const tigerY = -10 + Math.sin(sceneProgress * Math.PI * 2) * 26;
+    drawIsoAnimal(ctx, tigerX, tigerY, 0, isoOx, isoOy, {
+      bodyTop: "#f97316",
+      bodyLeft: "#ea580c",
+      bodyRight: "#c2410c",
+      stripes: true,
+      gpsCollar: true,
+      walking: true,
+      walkPhase: sceneProgress * 18,
+      scale: 1.15,
+    });
+
+    drawIsoAnimal(ctx, tigerX - 68, tigerY + 48, 0, isoOx, isoOy, {
+      bodyTop: "#d97706",
+      bodyLeft: "#b45309",
+      bodyRight: "#92400e",
+      stripes: false,
+      gpsCollar: false,
+      walking: true,
+      walkPhase: sceneProgress * 18 + 1.5,
+      scale: 0.88,
+    });
+
+    drawIsoPerson(ctx, -135, 95, 0, isoOx, isoOy, {
+      shirtTop: "#22c55e",
+      shirtLeft: "#16a34a",
+      shirtRight: "#15803d",
+      raiseArm: true,
+      scale: 0.95,
+    });
+    drawIsoPerson(ctx, -85, 112, 0, isoOx, isoOy, {
+      shirtTop: "#38bdf8",
+      shirtLeft: "#0284c7",
+      shirtRight: "#0369a1",
+      walking: true,
+      walkPhase: sceneProgress * 12,
+      scale: 0.95,
+    });
+
+    const wLbl = isoProject(tigerX + 10, tigerY, 64 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, wLbl.x, wLbl.y, metrics[0]!, "#22c55e");
+  } else if (archetype === "polling_station") {
+    drawIsoBox(ctx, -215, -155, -14, 430, 310, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    drawIsoBox(ctx, 55, -125, 0, 115, 16, 130 * buildIn, isoOx, isoOy, "#38bdf8", "#0284c7", "#0369a1");
+    drawIsoBox(ctx, 154, -125, 0, 16, 115, 130 * buildIn, isoOx, isoOy, "#7dd3fc", "#0284c7", "#0369a1");
+    drawIsoBox(ctx, 88, -82, 0, 46, 46, 62 * buildIn, isoOx, isoOy, "#f8fafc", "#cbd5e1", "#94a3b8");
+    drawIsoBox(ctx, 94, -76, 62 * buildIn, 34, 34, 14, isoOx, isoOy, "#22c55e", "#16a34a", "#15803d");
+
+    drawIsoBox(ctx, -85, -110, 0, 88, 52, 46 * buildIn, isoOx, isoOy, "#f97316", "#ea580c", "#c2410c");
+    drawIsoPerson(ctx, -45, -135, 0, isoOx, isoOy, {
+      shirtTop: "#38bdf8",
+      shirtLeft: "#0284c7",
+      shirtRight: "#0369a1",
+      raiseArm: true,
+      scale: 0.95,
+    });
+    drawIsoPerson(ctx, 112, -25, 0, isoOx, isoOy, {
+      shirtTop: "#22c55e",
+      shirtLeft: "#16a34a",
+      shirtRight: "#15803d",
+      raiseArm: true,
+      scale: 0.95,
+    });
+
+    const voterColors = [
+      { top: "#f43f5e", left: "#e11d48", right: "#be123c" },
+      { top: "#a78bfa", left: "#7c3aed", right: "#6d28d9" },
+      { top: "#facc15", left: "#eab308", right: "#ca8a04" },
+    ];
+    voterColors.forEach((vc, idx) => {
+      const qStep = sceneProgress * 0.65 * 45;
+      const vx = -165 + idx * 54 + qStep;
+      const vy = 45 - idx * 24;
+      drawIsoPerson(ctx, vx, vy, 0, isoOx, isoOy, {
+        shirtTop: vc.top,
+        shirtLeft: vc.left,
+        shirtRight: vc.right,
+        walking: true,
+        walkPhase: sceneProgress * 18 + idx * 2.1,
+        scale: 0.95,
+      });
+    });
+
+    const boothLbl = isoProject(110, -70, 152 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, boothLbl.x, boothLbl.y, metrics[0]!, "#38bdf8");
+  } else if (archetype === "document_printer") {
+    drawIsoBox(ctx, -200, -145, -14, 400, 290, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    drawIsoBox(ctx, -78, -68, 0, 156, 128, 78 * buildIn, isoOx, isoOy, "#e2e8f0", "#94a3b8", "#64748b");
+    drawIsoBox(ctx, -45, -35, 78 * buildIn, 90, 68, 46 * buildIn, isoOx, isoOy, "rgba(56, 189, 248, 0.45)", "rgba(2, 132, 199, 0.35)", "rgba(3, 105, 161, 0.35)");
+
+    for (let s = 0; s < 3; s++) {
+      const slipProg = (sceneProgress * 1.8 + s * 0.33) % 1;
+      const slipZ = 82 * buildIn + Math.sin(slipProg * Math.PI) * 42;
+      drawIsoBox(ctx, -24 + s * 16, -16, slipZ, 22, 28, 3, isoOx, isoOy, "#ffffff", "#e2e8f0", "#cbd5e1");
+    }
+
+    drawIsoPerson(ctx, -125, 25, 0, isoOx, isoOy, {
+      shirtTop: "#f97316",
+      shirtLeft: "#ea580c",
+      shirtRight: "#c2410c",
+      raiseArm: true,
+      scale: 0.96,
+    });
+    drawIsoPerson(ctx, 115, -20, 0, isoOx, isoOy, {
+      shirtTop: "#22c55e",
+      shirtLeft: "#16a34a",
+      shirtRight: "#15803d",
+      raiseArm: true,
+      scale: 0.96,
+    });
+
+    const pLbl = isoProject(0, 0, 148 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, pLbl.x, pLbl.y, metrics[0]!, "#38bdf8");
+  } else if (archetype === "secure_vault") {
+    drawIsoBox(ctx, -200, -150, -14, 400, 300, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    drawIsoBox(ctx, -110, -110, 0, 220, 220, 138 * buildIn, isoOx, isoOy, "#475569", "#334155", "#1e293b");
+    drawIsoBox(ctx, -56, 110, 14, 112, 18, 108 * buildIn, isoOx, isoOy, "#94a3b8", "#64748b", "#475569");
+    drawIsoBox(ctx, -22, 128, 52 * buildIn, 44, 10, 44 * buildIn, isoOx, isoOy, "#22c55e", "#16a34a", "#15803d");
+
+    const scanAngle = -0.6 + Math.sin(sceneProgress * Math.PI * 3) * 0.7;
+    const camPt = isoProject(-110, 110, 142 * buildIn, isoOx, isoOy);
+    ctx.strokeStyle = "rgba(249, 115, 22, 0.55)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(camPt.x, camPt.y);
+    ctx.lineTo(camPt.x + Math.cos(scanAngle) * 140, camPt.y + 85);
+    ctx.stroke();
+
+    const patrolX = -90 + sceneProgress * 180;
+    drawIsoPerson(ctx, patrolX, 148, 0, isoOx, isoOy, {
+      shirtTop: "#38bdf8",
+      shirtLeft: "#0284c7",
+      shirtRight: "#0369a1",
+      walking: true,
+      walkPhase: sceneProgress * 16,
+      scale: 0.94,
+    });
+
+    const vLbl = isoProject(0, 0, 162 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, vLbl.x, vLbl.y, metrics[0]!, "#22c55e");
+  } else if (archetype === "cooling_chamber") {
+    drawIsoBox(ctx, -205, -145, -14, 410, 290, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    drawIsoBox(ctx, -170, -115, 0, 250, 24, 150 * buildIn, isoOx, isoOy, "#38bdf8", "#0284c7", "#0369a1");
+    drawIsoBox(ctx, -170, -115, 134 * buildIn, 250, 195, 16, isoOx, isoOy, "#7dd3fc", "#0284c7", "#0369a1");
+    drawIsoBox(ctx, -125, -55, 0, 82, 82, 54 * buildIn, isoOx, isoOy, "#f43f5e", "#e11d48", "#be123c");
+    drawIsoBox(ctx, -25, -55, 0, 82, 82, 54 * buildIn, isoOx, isoOy, "#fb7185", "#e11d48", "#9f1239");
+
+    for (let wIdx = 0; wIdx < 4; wIdx++) {
+      const waveProg = (sceneProgress * 2.2 + wIdx * 0.25) % 1;
+      const mistPt = isoProject(-150 + waveProg * 220, -10 + (wIdx - 1.5) * 28, 72, isoOx, isoOy);
+      ctx.fillStyle = `rgba(186, 230, 253, ${Math.sin(waveProg * Math.PI) * 0.65})`;
+      ctx.beginPath();
+      ctx.arc(mistPt.x, mistPt.y, 8 + waveProg * 10, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const gaugeFill = Math.max(0.18, 1 - activeFlow * 0.68);
+    drawIsoBox(ctx, 115, -45, 0, 56, 56, 175 * buildIn, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    const colTop = activeFlow > 0.45 ? "#38bdf8" : "#f43f5e";
+    drawIsoBox(ctx, 121, -39, 4, 44, 44, 165 * buildIn * gaugeFill, isoOx, isoOy, colTop, "#0284c7", "#0369a1");
+
+    const gLabel = isoProject(143, -17, 192 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, gLabel.x, gLabel.y, metrics[0]!, colTop);
+  } else if (archetype === "reefer_transit") {
+    drawIsoVehicle(ctx, "truck", isoOx, isoOy, sceneProgress, buildIn, palette.accent, palette.secondary);
+    const tLbl = isoProject(0, 0, 132 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, tLbl.x, tLbl.y, metrics[0]!, palette.accent);
+  } else if (archetype === "atmosphere_dome") {
+    drawIsoBox(ctx, -185, -185, -14, 370, 370, 14, isoOx, isoOy, "#0f172a", "#090d16", "#020617");
+    drawIsoBox(ctx, -68, -68, 0, 136, 136, 98 * buildIn, isoOx, isoOy, palette.secondary, "#be123c", "#881337");
+    drawIsoBox(ctx, -84, -84, 0, 168, 168, 114 * buildIn, isoOx, isoOy, "rgba(56, 189, 248, 0.32)", "rgba(2, 132, 199, 0.25)", "rgba(3, 105, 161, 0.25)");
+
+    for (let m = 0; m < 6; m++) {
+      const angle = sceneProgress * Math.PI * 2.5 + (m * Math.PI) / 3;
+      const rx = Math.cos(angle) * 145;
+      const ry = Math.sin(angle) * 145;
+      const rz = 65 + Math.sin(angle * 2) * 24;
+      const pt = isoProject(rx, ry, rz, isoOx, isoOy);
+      ctx.fillStyle = m % 2 === 0 ? palette.accent : palette.tertiary;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    const domeLbl = isoProject(0, 0, 148 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, domeLbl.x, domeLbl.y, metrics[0]!, palette.accent);
+  } else if (archetype === "telemetry_beacon") {
+    drawIsoBox(ctx, -195, -195, -14, 390, 390, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    drawIsoBox(ctx, -48, -48, 0, 96, 96, 86 * buildIn, isoOx, isoOy, "#334155", "#1e293b", "#0f172a");
+    drawIsoBox(ctx, -14, -14, 86 * buildIn, 28, 28, 72 * buildIn, isoOx, isoOy, palette.accent, "#0284c7", "#0369a1");
+
+    const beaconTop = isoProject(0, 0, 158 * buildIn, isoOx, isoOy);
+    for (let r = 0; r < 3; r++) {
+      const ringProg = (sceneProgress * 2.4 + r * 0.33) % 1;
+      ctx.strokeStyle = `rgba(56, 189, 248, ${(1 - ringProg) * 0.85})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(beaconTop.x, beaconTop.y, 26 + ringProg * 175, 14 + ringProg * 95, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    if (showAnimals) {
+      drawIsoAnimal(ctx, -120 + sceneProgress * 75, -25, 0, isoOx, isoOy, {
+        bodyTop: "#f97316",
+        bodyLeft: "#ea580c",
+        bodyRight: "#c2410c",
+        stripes: true,
+        gpsCollar: true,
+        walking: true,
+        walkPhase: sceneProgress * 16,
+        scale: 1.05,
+      });
+    }
+    if (showPeople) {
+      drawIsoPerson(ctx, -95, 85, 0, isoOx, isoOy, {
+        shirtTop: palette.secondary,
+        shirtLeft: "#ea580c",
+        shirtRight: "#c2410c",
+        raiseArm: true,
+        scale: 0.9,
+      });
+      drawIsoPerson(ctx, 95, 85, 0, isoOx, isoOy, {
+        shirtTop: palette.tertiary,
+        shirtLeft: "#16a34a",
+        shirtRight: "#15803d",
+        raiseArm: true,
+        scale: 0.9,
+      });
+    }
+
+    const nodes = [
+      { ix: -140, iy: -120, lbl: metrics[0]!, c: palette.tertiary },
+      { ix: 110, iy: -120, lbl: metrics[1] || metrics[0]!, c: palette.accent },
+      { ix: 0, iy: 120, lbl: metrics[2] || metrics[0]!, c: palette.secondary },
+    ];
+    nodes.forEach((nd) => {
+      drawIsoBox(ctx, nd.ix - 26, nd.iy - 26, 0, 52, 52, 48 * buildIn, isoOx, isoOy, nd.c, "#1e293b", "#0f172a");
+      const np = isoProject(nd.ix, nd.iy, 66 * buildIn, isoOx, isoOy);
+      drawIsoPillLabel(ctx, np.x, np.y, nd.lbl, nd.c);
+    });
+  } else if (archetype === "conveyor_sorter") {
+    drawIsoBox(ctx, -225, -110, -14, 450, 220, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    drawIsoBox(ctx, -205, -42, 0, 410, 84, 34 * buildIn, isoOx, isoOy, "#475569", "#334155", "#1e293b");
+    drawIsoBox(ctx, -18, -56, 34 * buildIn, 36, 112, 92 * buildIn, isoOx, isoOy, palette.accent, "#0284c7", "#0369a1");
+
+    for (let c = 0; c < 3; c++) {
+      const beltProg = (sceneProgress * 1.4 + c * 0.33) % 1;
+      const cxPos = -185 + beltProg * 330;
+      const passedScanner = cxPos > 0;
       drawIsoBox(
         ctx,
-        sx,
-        -112,
-        152 * reveal,
-        58,
-        75,
-        18,
+        cxPos,
+        -24,
+        34 * buildIn,
+        46,
+        48,
+        42 * buildIn,
         isoOx,
         isoOy,
-        isAmber ? "#f59e0b" : "#fffbeb",
-        isAmber ? "#d97706" : "#e2e8f0",
-        isAmber ? "#b45309" : "#cbd5e1"
+        passedScanner ? palette.tertiary : palette.secondary,
+        passedScanner ? "#059669" : "#e11d48",
+        passedScanner ? "#047857" : "#be123c"
       );
     }
 
-    // Front Service Counter + Espresso Machine
-    drawIsoBox(ctx, -155, 25, 0, 210, 75, 68 * reveal, isoOx, isoOy, "#d97706", "#b45309", "#78350f");
-    drawIsoBox(ctx, -130, 38, 68 * reveal, 75, 48, 52 * reveal, isoOx, isoOy, "#e2e8f0", "#94a3b8", "#475569");
-
-    // Giant Isometric Takeaway Coffee Cup with Kraft Sleeve & Lid on Right Pedestal
-    const cupX = 95;
-    const cupY = 25;
-    const cupH = 115 * pop;
-    drawIsoBox(ctx, cupX - 36, cupY - 36, 0, 72, 72, cupH, isoOx, isoOy, "#f8fafc", "#e2e8f0", "#cbd5e1");
-    // Kraft Coffee Sleeve
-    drawIsoBox(ctx, cupX - 38, cupY - 38, cupH * 0.34, 76, 76, cupH * 0.34, isoOx, isoOy, "#d97706", "#b45309", "#92400e");
-    // Dark Espresso Lid
-    drawIsoBox(ctx, cupX - 40, cupY - 40, cupH, 80, 80, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
-
-    // Rising Animated Steam Puffs above Coffee Cup
-    for (let st = 0; st < 3; st++) {
-      const steamProgress = ((t * 0.9 + st * 0.33) % 1);
-      const steamPt = isoProject(
-        cupX + Math.sin(t * 4 + st) * 12,
-        cupY,
-        cupH + 26 + steamProgress * 65,
-        isoOx,
-        isoOy
-      );
-      ctx.fillStyle = `rgba(255, 255, 255, ${(1 - steamProgress) * 0.55})`;
-      ctx.beginPath();
-      ctx.arc(steamPt.x, steamPt.y, 7 + steamProgress * 8, 0, Math.PI * 2);
-      ctx.fill();
+    if (showPeople) {
+      drawIsoPerson(ctx, 130, 75, 0, isoOx, isoOy, {
+        shirtTop: palette.accent,
+        shirtLeft: "#0284c7",
+        shirtRight: "#0369a1",
+        raiseArm: true,
+        scale: 0.92,
+      });
     }
 
-    const cupLbl = isoProject(cupX, cupY, cupH + 34, isoOx, isoOy);
-    drawIsoPillLabel(ctx, cupLbl.x, cupLbl.y, metrics[0]!, "#f59e0b");
-  } else if (domain === "supply_chain") {
-    // ISOMETRIC GLOBAL SUPPLY CHAIN: FARM/FACTORY -> CARGO CONTAINER -> RETAIL HUB
-    drawIsoBox(ctx, -210, -120, -14, 420, 240, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#090d16");
-
-    // Stage 1: Raw Harvest / Origin Crate Stack
-    drawIsoBox(ctx, -180, -65, 0, 95, 130, 76 * reveal, isoOx, isoOy, "#22c55e", "#16a34a", "#15803d");
-    // Stage 2: Corrugated Shipping Container
-    drawIsoBox(ctx, -45, -65, 0, 110, 130, 92 * reveal, isoOx, isoOy, "#38bdf8", "#0284c7", "#0369a1");
-    // Stage 3: Roasted / Processed Destination Hub
-    drawIsoBox(ctx, 105, -65, 0, 95, 130, 128 * reveal, isoOx, isoOy, "#f59e0b", "#d97706", "#b45309");
-
-    // Animated Transit Cargo Packet sliding across the 3 stages
-    const slideX = -140 + ((t * 170) % 280);
-    const cargoPt = isoProject(slideX, 0, 110, isoOx, isoOy);
-    ctx.fillStyle = "#facc15";
-    ctx.beginPath();
-    ctx.arc(cargoPt.x, cargoPt.y, 11, 0, Math.PI * 2);
-    ctx.fill();
-
-    const p1 = isoProject(-132, 0, 76 * reveal + 24, isoOx, isoOy);
-    const p2 = isoProject(10, 0, 92 * reveal + 38, isoOx, isoOy);
-    const p3 = isoProject(152, 0, 128 * reveal + 52, isoOx, isoOy);
-    drawIsoPillLabel(ctx, p1.x, p1.y, metrics[0]!, "#22c55e");
-    drawIsoPillLabel(ctx, p2.x, p2.y, metrics[1]!, "#38bdf8");
-    drawIsoPillLabel(ctx, p3.x, p3.y, metrics[2]!, "#f59e0b");
-  } else if (domain === "finance_vault") {
-    // ISOMETRIC UNIT ECONOMICS & RISING VALUE WATERFALL TOWERS
-    drawIsoBox(ctx, -205, -140, -14, 410, 280, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#090d16");
-
-    const pillars = [
-      { ix: -145, iy: -48, h: 64 * reveal, top: "#94a3b8", left: "#64748b", right: "#475569", lbl: metrics[0]! },
-      { ix: -32, iy: -48, h: 138 * reveal, top: "#fbbf24", left: "#d97706", right: "#b45309", lbl: metrics[1]! },
-      { ix: 82, iy: -48, h: 225 * reveal, top: "#34d399", left: "#059669", right: "#047857", lbl: metrics[2]! },
+    const archLbl = isoProject(0, 0, 148 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, archLbl.x, archLbl.y, metrics[0]!, palette.accent);
+  } else if (archetype === "value_pillars") {
+    drawIsoBox(ctx, -205, -135, -14, 410, 270, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    const count = Math.max(2, metrics.length);
+    const heights = [75, 145, 215];
+    const colors = [
+      { top: palette.accent, left: "#0284c7", right: "#0369a1" },
+      { top: palette.secondary, left: "#e11d48", right: "#be123c" },
+      { top: palette.tertiary, left: "#059669", right: "#047857" },
     ];
-
-    pillars.forEach((tw, idx) => {
-      const hSafe = Math.max(20, tw.h);
-      drawIsoBox(ctx, tw.ix, tw.iy, 0, 78, 96, hSafe, isoOx, isoOy, tw.top, tw.left, tw.right);
-      // Gold top coin cap on highest profit pillar
-      if (idx === 2) {
-        drawIsoBox(ctx, tw.ix + 8, tw.iy + 12, hSafe, 62, 72, 14, isoOx, isoOy, "#fde047", "#eab308", "#ca8a04");
-      }
-      const capPt = isoProject(tw.ix + 39, tw.iy + 48, hSafe + 26 + idx * 14, isoOx, isoOy);
-      drawIsoPillLabel(ctx, capPt.x, capPt.y, tw.lbl, tw.top);
-    });
+    for (let i = 0; i < count; i++) {
+      const ix = -140 + i * 115;
+      const pillarGrowth = easeOutCubic(Math.min(1, Math.max(0.15, sceneProgress * 1.4 - i * 0.14)));
+      const ph = heights[i]! * pillarGrowth;
+      const col = colors[i]!;
+      drawIsoBox(ctx, ix, -42, 0, 78, 84, ph, isoOx, isoOy, col.top, col.left, col.right);
+      const cap = isoProject(ix + 39, 0, ph + 26, isoOx, isoOy);
+      drawIsoPillLabel(ctx, cap.x, cap.y, metrics[i]!, col.top);
+    }
+  } else if (archetype === "core_cutaway") {
+    drawIsoBox(ctx, -170, -170, -14, 340, 340, 14, isoOx, isoOy, "#1e293b", "#0f172a", "#020617");
+    drawIsoBox(ctx, -125, -125, 0, 250, 250, 56 * buildIn, isoOx, isoOy, palette.accent, "#0284c7", "#0369a1");
+    drawIsoBox(ctx, -82, -82, 46 * buildIn, 164, 164, 62 * buildIn, isoOx, isoOy, palette.tertiary, "#059669", "#047857");
+    const liftZ = 115 * buildIn + Math.sin(sceneProgress * Math.PI) * 28;
+    drawIsoBox(ctx, -44, -44, liftZ, 88, 88, 70 * buildIn, isoOx, isoOy, palette.secondary, "#e11d48", "#be123c");
+    const cap = isoProject(0, 0, liftZ + 94 * buildIn, isoOx, isoOy);
+    drawIsoPillLabel(ctx, cap.x, cap.y, metrics[0]!, palette.secondary);
   } else {
-    // ISOMETRIC HARDWARE / SILICON MOTHERBOARD & WORKLOAD ARCHITECTURE (Tech topics only!)
-    drawIsoBox(ctx, -220, -105, 0, 440, 210, 18, isoOx, isoOy, "#065f46", "#064e3b", "#047857", "#34d399");
-
-    for (let pIdx = -200; pIdx <= 200; pIdx += 24) {
-      drawIsoBox(ctx, pIdx, 105, -4, 14, 14, 8, isoOx, isoOy, "#fbbf24", "#d97706", "#b45309", "rgba(0,0,0,0.2)");
-    }
-
-    [-150, -50, 50, 150].forEach((cxOff, idx) => {
-      const chipH = 30 + (idx % 2) * 12;
-      drawIsoBox(ctx, cxOff - 34, -50, 18, 68, 100, chipH, isoOx, isoOy, "#1e293b", "#090d16", "#0f172a", "#38bdf8");
+    drawIsoBox(ctx, -190, -190, -14, 380, 380, 14, isoOx, isoOy, "#0f172a", "#090d16", "#020617");
+    drawIsoBox(ctx, -50, -50, 0, 100, 100, 118 * buildIn, isoOx, isoOy, palette.accent, "#0284c7", "#0369a1");
+    const orbiters = [
+      { angle: sceneProgress * Math.PI * 1.5, c: palette.secondary, lbl: metrics[0]! },
+      { angle: sceneProgress * Math.PI * 1.5 + (Math.PI * 2) / 3, c: palette.tertiary, lbl: metrics[1] || metrics[0]! },
+      { angle: sceneProgress * Math.PI * 1.5 + (Math.PI * 4) / 3, c: palette.accent, lbl: metrics[2] || metrics[0]! },
+    ];
+    orbiters.forEach((orb, idx) => {
+      const ox = Math.cos(orb.angle) * 145;
+      const oy = Math.sin(orb.angle) * 145;
+      drawIsoBox(ctx, ox - 28, oy - 28, 0, 56, 56, 64 * buildIn, isoOx, isoOy, orb.c, "#1e293b", "#0f172a");
+      if (idx < metrics.length) {
+        const op = isoProject(ox, oy, 82 * buildIn, isoOx, isoOy);
+        drawIsoPillLabel(ctx, op.x, op.y, orb.lbl, orb.c);
+      }
     });
-
-    for (let p = 0; p < 2; p++) {
-      const dir = p === 0 ? 1 : -1;
-      const pulseX = dir * (-190 + (((t * 260 + p * 180) % 380)));
-      const beamPt = isoProject(pulseX, p === 0 ? -20 : 25, 56, isoOx, isoOy);
-      ctx.fillStyle = p === 0 ? "#f97316" : "#38bdf8";
-      ctx.beginPath();
-      ctx.arc(beamPt.x, beamPt.y, 11, 0, Math.PI * 2);
-      ctx.fill();
-    }
   }
 
   ctx.restore();
 
-  // 5. Lower-Third Architectural Telemetry Deck
-  const deckY = h * 0.72;
+  // 5. Lower-Third Clean Metric Cards
+  const cardCount = metrics.length;
   const cardGap = 24;
   const sidePad = 56;
-  const cardW = (w - sidePad * 2 - cardGap * 2) / 3;
-  const cardH = 220;
-  const cardAccents = ["#38bdf8", "#f97316", "#22c55e"];
-  const cardWeights = [0.48, 0.76, 0.96];
+  const cardW = (w - sidePad * 2 - cardGap * (cardCount - 1)) / cardCount;
+  const cardH = 210;
+  const deckY = h * 0.73;
+  const cardAccents = [palette.accent, palette.secondary, palette.tertiary];
 
   metrics.forEach((metricLabel, idx) => {
-    const cardPop = easeOutCubic(Math.min(1, Math.max(0, (sceneProgress - idx * 0.1) * 2.8)));
+    const cardReveal = easeOutCubic(Math.min(1, Math.max(0, (sceneProgress - idx * 0.08) / 0.25)));
+    const barFill = Math.min(1, 0.35 + sceneProgress * 0.65);
     const x = sidePad + idx * (cardW + cardGap);
-    const y = deckY + (1 - cardPop) * 26;
+    const y = deckY + (1 - cardReveal) * 22;
 
     ctx.save();
-    ctx.globalAlpha = 0.25 + 0.75 * cardPop;
+    ctx.globalAlpha = 0.2 + 0.8 * cardReveal;
     drawRoundedRect(ctx, x, y, cardW, cardH, 22);
-    ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+    ctx.fillStyle = "rgba(11, 18, 32, 0.90)";
     ctx.fill();
-    ctx.strokeStyle = idx === 2 ? "rgba(34, 197, 94, 0.55)" : "rgba(148, 163, 184, 0.22)";
+    ctx.strokeStyle = cardAccents[idx % cardAccents.length]!;
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    ctx.fillStyle = cardAccents[idx]!;
+    ctx.fillStyle = cardAccents[idx % cardAccents.length]!;
     ctx.font = "900 15px 'Segoe UI', Arial, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(`STAGE 0${idx + 1}`, x + 22, y + 38);
+    ctx.fillText(`0${idx + 1}`, x + 24, y + 36);
 
     ctx.fillStyle = "#f8fafc";
-    ctx.font = "bold 19px 'Segoe UI', Arial, sans-serif";
-    const lines = wrapTextLines(ctx, metricLabel.toUpperCase(), cardW - 44, 3);
+    ctx.font = "bold 20px 'Segoe UI', Arial, sans-serif";
+    const lines = wrapTextLines(ctx, metricLabel.toUpperCase(), cardW - 48, 3);
     lines.forEach((ln, li) => {
-      ctx.fillText(ln, x + 22, y + 74 + li * 25);
+      ctx.fillText(ln, x + 24, y + 72 + li * 26);
     });
 
-    const barY = y + cardH - 36;
-    const trackW = cardW - 44;
-    drawRoundedRect(ctx, x + 22, barY, trackW, 10, 5);
+    const barY = y + cardH - 34;
+    const trackW = cardW - 48;
+    drawRoundedRect(ctx, x + 24, barY, trackW, 10, 5);
     ctx.fillStyle = "#1e293b";
     ctx.fill();
 
-    drawRoundedRect(ctx, x + 22, barY, Math.max(12, trackW * cardWeights[idx]! * cardPop), 10, 5);
-    ctx.fillStyle = cardAccents[idx]!;
+    drawRoundedRect(ctx, x + 24, barY, Math.max(12, trackW * barFill), 10, 5);
+    ctx.fillStyle = cardAccents[idx % cardAccents.length]!;
     ctx.fill();
     ctx.restore();
   });
@@ -2729,7 +3506,7 @@ export async function renderVerticalVideoMp4(params: {
     const activeBeat = aiBeats[sceneIdx]!;
 
     if (isIsometric) {
-        renderIsometricTechScene(ctx, width, height, t, activeBeat, sceneIdx, sceneCount, sceneProgress);
+        renderIsometricTechScene(ctx, width, height, t, cleanTitle, activeBeat, sceneIdx, sceneCount, sceneProgress);
       } else if (isCartoonStickman) {
         renderDynamicStickmanScene(ctx, width, height, t, activeBeat, sceneIdx, sceneCount, sceneProgress);
       } else if (style === "minimal_line_art") {

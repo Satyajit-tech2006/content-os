@@ -28,7 +28,7 @@ export const StoryboardBeatSchema = z.object({
     ])
     .default("growth_chart"),
   propTitle: z.preprocess((v) => { const str = typeof v === "string" ? v.trim() : ""; return str.length >= 2 ? str.slice(0, 36) : "KEY METRIC"; }, z.string().min(2).max(36)),
-  propMetrics: z.preprocess((v) => { const raw = Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,;|\n]+/) : []; const cleaned = raw.map((x) => String(x ?? "").trim().slice(0, 28)).filter(Boolean).slice(0, 4); return cleaned.length > 0 ? cleaned : ["PHASE 1", "PHASE 2"]; }, z.array(z.string().min(1).max(28)).min(1).max(4))
+  propMetrics: z.preprocess((v) => { const raw = Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,;|\n]+/) : []; const cleaned = raw.map((x) => String(x ?? "").trim().slice(0, 44)).filter(Boolean).slice(0, 4); return cleaned.length > 0 ? cleaned : ["PHASE 1", "PHASE 2"]; }, z.array(z.string().min(1).max(44)).min(1).max(4))
 });
 
 export type StoryboardBeat = z.infer<typeof StoryboardBeatSchema>;
@@ -131,7 +131,7 @@ export class PromptRegistry {
       description: "Generates structured editorial angles, opening hooks, and talking points without fabricating live facts.",
       task: "content_ideas",
       active: true,
-      systemPrompt: "You are a senior short-form content strategist. Output ONLY valid JSON matching the requested schema. Do not invent unverified statistics or breaking news dates.",
+      systemPrompt: "You are an elite short-form documentary strategist writing in 2026. Ground every angle in real-world mechanisms, concrete domain facts, and accurate modern knowledge. Output ONLY valid JSON matching the requested schema.",
       renderTemplate: (vars) => [
         "Channel Name: " + String(vars.projectName ?? "Creator Channel"),
         "Niche: " + String(vars.niche ?? "General"),
@@ -155,7 +155,7 @@ export class PromptRegistry {
       description: "Generates a complete short-form video script with hook, narration body, description, hashtags, duration estimate, and dynamic storyboard.",
       task: "script_generation",
       active: true,
-      systemPrompt: "You are an elite short-form video scriptwriter and visual director. Output ONLY valid JSON matching the exact schema keys requested. No markdown fences or commentary.",
+      systemPrompt: "You are an elite short-form documentary scriptwriter and 3D motion-graphics director in 2026. Write dense, authoritative, up-to-date scripts packed with concrete mechanisms, real numbers, and zero fluff. Every storyboard beat MUST use a DIFFERENT propType and distinct visual concept so no animation ever repeats in the same video. Output ONLY valid JSON matching the exact schema keys requested.",
       renderTemplate: (vars) => [
         "Create a complete video script with the following parameters:",
         "- Channel / Project: " + String(vars.projectName ?? "Creator Channel"),
@@ -174,7 +174,7 @@ export class PromptRegistry {
         "  \"description\": string (social post caption/description),",
         "  \"hashtags\": string[] (4-8 relevant hashtags starting with #),",
         "  \"estimatedDuration\": number (integer seconds matching pacing),",
-        "  \"storyboard\": [ (3-6 dynamic visual scenes matching each part of the script)",
+        "  \"storyboard\": [ (4-6 distinct visual scenes matching each beat of the script ? NEVER repeat the same propType twice in a row)",
         "    { \"beatSummary\": string, \"action\": \"thinking\"|\"walking_across\"|\"presenting_board\"|\"directing_swarm\"|\"juggling_tasks\"|\"examining_lens\"|\"celebrating\", \"position\": \"left\"|\"center\"|\"right\"|\"traverse\", \"propType\": \"comparison_bars\"|\"parallel_grid\"|\"flow_network\"|\"growth_chart\"|\"blueprint_structure\"|\"speed_gauge\"|\"magnifying_lens\"|\"trophy_badge\", \"propTitle\": string, \"propMetrics\": string[] }",
         "  ]",
         "}"

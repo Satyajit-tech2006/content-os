@@ -1,3 +1,4 @@
+const sessionCache = new Map<string, { expiresAt: number; user: any; sessionId: string }>();
 import type { NextFunction, Request, Response } from "express";
 import { prisma, type WorkspaceRole } from "@contentos/database";
 import { ForbiddenError, UnauthorizedError } from "@contentos/shared";
@@ -34,10 +35,17 @@ export async function requireAuth(
     }
 
     const tokenHash = hashSessionToken(rawToken);
-    const session = await prisma.session.findUnique({
-      where: { tokenHash },
-      include: { user: true },
-    });
+    const cachedSess = sessionCache.get(tokenHash);
+    let session: any = cachedSess && cachedSess.expiresAt > Date.now() ? { id: cachedSess.sessionId, expiresAt: new Date(cachedSess.expiresAt), user: cachedSess.user } : null;
+    if (!session) {
+      session = await prisma.session.findUnique({
+        where: { tokenHash },
+        include: { user: true },
+      });
+      if (session && session.expiresAt > new Date()) {
+        sessionCache.set(tokenHash, { expiresAt: Math.min(session.expiresAt.getTime(), Date.now() + 15_000), user: session.user, sessionId: session.id });
+      }
+    }
 
     if (!session || session.expiresAt < new Date()) {
       throw new UnauthorizedError("Session expired or invalid");

@@ -6,6 +6,15 @@ import { dispatchOutboxEvent } from "../lib/queue.js";
 import { requireAuth, requireWorkspaceAccess } from "../middleware/auth.js";
 
 const router: Router = Router({ mergeParams: true });
+const assetsListCache = new Map<string, { expiresAt: number; payload: unknown }>();
+router.use((req, _res, next) => {
+  if (req.method !== "GET" && req.workspaceId) {
+    for (const key of assetsListCache.keys()) {
+      if (key.startsWith(req.workspaceId + ":")) assetsListCache.delete(key);
+    }
+  }
+  next();
+});
 
 router.use(requireAuth, requireWorkspaceAccess());
 
@@ -40,45 +49,71 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const type = req.query.type ? String(req.query.type) : undefined;
     const approvalStatus = req.query.approvalStatus ? String(req.query.approvalStatus) : undefined;
 
-    const assets = await prisma.contentAsset.findMany({
-      where: {
-        workspaceId,
-        ...(projectId && { projectId }),
-        ...(type && { type: type as never }),
-        ...(approvalStatus && { approvalStatus: approvalStatus as never }),
-      },
-      include: {
-        project: { select: { id: true, name: true, niche: true } },
-        execution: {
-          select: {
-            id: true,
-            status: true,
-            currentStageIndex: true,
-            activeRevisionNum: true,
-            approvedRevisionId: true,
-            createdAt: true,
-            completedAt: true,
-          },
-        },
-        revisions: {
-          orderBy: { revisionNumber: "desc" },
-          include: {
-            createdByUser: { select: { id: true, name: true, email: true } },
-          },
-        },
-        approvalDecisions: {
-          orderBy: { createdAt: "desc" },
-          include: {
-            reviewer: { select: { id: true, name: true, email: true } },
-            revision: { select: { id: true, revisionNumber: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
+    const page = Math.max(1, Number.parseInt(String(req.query.page ?? "1"), 10) || 1);
+    const limit = Math.min(25, Math.max(1, Number.parseInt(String(req.query.limit ?? "10"), 10) || 10));
+    const skip = (page - 1) * limit;
 
-    res.json({ assets: assets.map(serializeAsset) });
+    const cacheKey = `${workspaceId}:${projectId || ""}:${type || ""}:${approvalStatus || ""}:p${page}:l${limit}`;
+    const hit = assetsListCache.get(cacheKey);
+    if (hit && hit.expiresAt > Date.now()) {
+      res.json(hit.payload);
+      return;
+    }
+
+    const whereClause = {
+      workspaceId,
+      ...(projectId && { projectId }),
+      ...(type && { type: type as never }),
+      ...(approvalStatus && { approvalStatus: approvalStatus as never }),
+    };
+
+    const [total, assets] = await Promise.all([
+      prisma.contentAsset.count({ where: whereClause }),
+      prisma.contentAsset.findMany({
+        where: whereClause,
+        include: {
+          project: { select: { id: true, name: true, niche: true } },
+          execution: {
+            select: {
+              id: true,
+              status: true,
+              currentStageIndex: true,
+              activeRevisionNum: true,
+              approvedRevisionId: true,
+              createdAt: true,
+              completedAt: true,
+            },
+          },
+          revisions: {
+            orderBy: { revisionNumber: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              assetId: true,
+              revisionNumber: true,
+              title: true,
+              hook: true,
+              voiceoverScript: true,
+              description: true,
+              hashtags: true,
+              createdAt: true,
+              createdByUser: { select: { id: true, name: true, email: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const payload = {
+      assets: assets.map(serializeAsset),
+      pagination: { page, limit, total, totalPages },
+    };
+    assetsListCache.set(cacheKey, { expiresAt: Date.now() + 5000, payload });
+    res.json(payload);
   } catch (err) {
     next(err);
   }

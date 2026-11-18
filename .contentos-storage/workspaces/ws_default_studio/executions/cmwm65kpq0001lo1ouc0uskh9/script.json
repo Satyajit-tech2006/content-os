@@ -1,0 +1,47 @@
+{
+  "title": "The Hidden Costs of Open-World Gaming",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "The Unseen Costs of Gaming's Golden Age",
+    "topic": "Modern Open-World Games",
+    "hookIdeas": [
+      "Imagine sinking $300 million into a game that's still plagued by lag and glitches.",
+      "Why do open-world games cost so much to make, and how do they recoup their investment?",
+      "What's behind the staggering $80 million pre-production engine tooling and motion-capture pipelines?"
+    ],
+    "talkingPoints": [
+      "Pre-production engine tooling and motion-capture pipelines absorb the first $80 million, accounting for 25% of development costs.",
+      "Global server sharding and real-time anti-cheat telemetry burn millions every month after launch, with some games spending up to $5 million per month.",
+      "Cosmetic battle-pass unit economics recoup development costs in 90 days, with some games generating over $100 million in revenue within the first quarter.",
+      "Cloud asset streaming is replacing 150-gigabyte local installs, reducing storage costs and enabling more players to access high-quality games on lower-end hardware."
+    ],
+    "targetKeywords": [
+      "open-world games cost",
+      "gaming development costs",
+      "pre-production engine tooling",
+      "motion-capture pipelines",
+      "server sharding and anti-cheat",
+      "battle-pass economics",
+      "cloud asset streaming"
+    ]
+  },
+  "script": {
+    "title": "The Hidden Costs of Open-World Gaming",
+    "hook": "Imagine sinking $300 million into a game that's still plagued by lag and glitches.",
+    "script": "Modern open-world games cost a staggering $300 million to develop and run. But where does that money go? Pre-production engine tooling and motion-capture pipelines absorb the first $80 million, accounting for 25% of development costs. After launch, global server sharding and real-time anti-cheat telemetry burn millions every month, with some games spending up to $5 million per month. However, cosmetic battle-pass unit economics recoup development costs in just 90 days, generating over $100 million in revenue within the first quarter. And with cloud asset streaming, 150-gigabyte local installs are becoming a thing of the past, reducing storage costs and enabling more players to access high-quality games on lower-end hardware. It's time to shine a light on the unseen costs of gaming's golden age.",
+    "description": "Ever wondered what goes into making a $300 million game? From pre-production engine tooling to cloud asset streaming, we're breaking down the hidden costs of open-world gaming. #GamingDevelopment #OpenWorldGames #CloudGaming #Esports",
+    "hashtags": [
+      "#GamingDevelopment",
+      "#OpenWorldGames",
+      "#CloudGaming",
+      "#Esports",
+      "#GameDevelopmentCosts",
+      "#GamingIndustry",
+      "#TechInGaming",
+      "#GamingNews"
+    ],
+    "estimatedDuration": 120,
+    "voiceoverScript": "Modern open-world games cost a staggering $300 million to develop and run. But where does that money go? Pre-production engine tooling and motion-capture pipelines absorb the first $80 million, accounting for 25% of development costs. After launch, global server sharding and real-time anti-cheat telemetry burn millions every month, with some games spending up to $5 million per month. However, cosmetic battle-pass unit economics recoup development costs in just 90 days, generating over $100 million in revenue within the first quarter. And with cloud asset streaming, 150-gigabyte local installs are becoming a thing of the past, reducing storage costs and enabling more players to access high-quality games on lower-end hardware. It's time to shine a light on the unseen costs of gaming's golden age.",
+    "caption": "Ever wondered what goes into making a $300 million game? From pre-production engine tooling to cloud asset streaming, we're breaking down the hidden costs of open-world gaming. #GamingDevelopment #OpenWorldGames #CloudGaming #Esports"
+  }
+}

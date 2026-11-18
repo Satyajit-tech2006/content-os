@@ -16,6 +16,8 @@ import executionsRoutes from "./routes/executions.routes.js";
 import assetsRoutes from "./routes/assets.routes.js";
 import publishingRoutes from "./routes/publishing.routes.js";
 import aiRoutes, { triggerScriptGenerationWorkflow } from "./routes/ai.routes.js";
+import femaleLibraryRoutes from "./routes/femaleLibrary.routes.js";
+import liveClipperRoutes from "./routes/liveClipper.routes.js";
 import { requireAuth } from "./middleware/auth.js";
 
 export function createApp(): Express {
@@ -30,11 +32,12 @@ export function createApp(): Express {
   );
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
-  app.use(pinoHttp({ logger }));
+  app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.method === "GET" } }));
 
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 60,
+    max: 300,
+    skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1" || req.ip === "::ffff:127.0.0.1",
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -53,6 +56,8 @@ export function createApp(): Express {
   app.use("/api/v1/workspaces/:workspaceId/assets", assetsRoutes);
   app.use("/api/v1/workspaces/:workspaceId/publishing", publishingRoutes);
   app.use("/api/v1/workspaces/:workspaceId/ai", aiRoutes);
+  app.use("/api/v1/workspaces/:workspaceId/female-library", femaleLibraryRoutes);
+  app.use("/api/v1/workspaces/:workspaceId/live-clipper", liveClipperRoutes);
   app.use("/api/ai", aiRoutes);
   app.post("/api/workflows/script-generation", requireAuth, triggerScriptGenerationWorkflow);
   app.post("/api/v1/workflows/script-generation", requireAuth, triggerScriptGenerationWorkflow);

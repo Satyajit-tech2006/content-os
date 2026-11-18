@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { ArrowLeft, Play, Settings, Pause, Trash2, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle, Film, Terminal, RotateCcw, ShieldAlert } from "lucide-react";
 import { apiFetch, type ProjectDTO, type WorkflowExecutionDTO } from "@/lib/api";
 import { StatusBadge } from "./StatusBadge";
+import { LiveClipperPanel } from "./LiveClipperPanel";
 
 interface Props {
   workspaceId: string; projectId: string;
@@ -164,7 +165,7 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
                 <div>
                   <label className="block text-[11px] text-zinc-500 mb-1">Visual Video Style</label>
                   <select value={videoStyle} onChange={(e) => setVideoStyle(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-200">
-                    <option value="isometric_tech">0. Isometric Tech Motion Graphics (3D Explainers)</option>
+                    <option value="isometric_tech">0. Isometric Motion Graphics (3D Explainers)</option>
                     <option value="stickman_explainer">1. Stickman Animation (Story-Driven Dynamic)</option>
                     <option value="minimal_line_art">2. Normal Lines Info Reels (Clean Vector Motion)</option>
                     <option value="phonk_montage_edit">3. Anime &amp; Phonk Montage Edits</option>
@@ -181,9 +182,13 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
                 onChange={(e) => setVoiceTone(e.target.value)}
                 className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
               >
-                <option value="energetic">Energetic &amp; Punchy (Guy Neural)</option>
-                <option value="engaging">Natural Host (Andrew Neural)</option>
-                <option value="documentary">Warm Storyteller (Aria Neural)</option>
+                <option value="energetic">Energetic &amp; Punchy (Guy Neural ? English)</option>
+                <option value="engaging">Natural Host (Andrew Neural ? English)</option>
+                <option value="documentary">Warm Storyteller (Aria Neural ? English)</option>
+                <option value="hindi_madhur">Hindi Male ? Madhur Neural (Authoritative)</option>
+                <option value="hindi_swara">Hindi Female ? Swara Neural (Storyteller)</option>
+                <option value="hindi_kabir">Hindi Male ? Kabir Energetic (Reels / YouTube)</option>
+                <option value="hindi_kavya">Hindi Female ? Kavya Documentary (Calm Hindi)</option>
               </select>
             </div>
               </div>
@@ -203,6 +208,7 @@ export function ProjectDetailView({ workspaceId, projectId, onBack, onEdit, onDe
               </button>
             </form>
           </div>
+          <LiveClipperPanel workspaceId={workspaceId} projectId={project.id} />
         </div>
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-xl border border-zinc-800 bg-[#111114] p-5">

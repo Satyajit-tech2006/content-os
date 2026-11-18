@@ -1,0 +1,97 @@
+{
+  "title": "Unlocking the Secrets of National Election Systems",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "How cutting-edge technology and innovative processes enable efficient, secure, and transparent vote counting, while maintaining the integrity of every ballot.",
+    "topic": "National Election Systems: Counting 100 Million Votes in 12 Hours",
+    "hookIdeas": [
+      "Imagine counting 100 million votes in just 12 hours... How do national election systems achieve this feat?",
+      "What's behind the magic of neighborhood polling booths that can process 1,200 votes per hour without a hitch?",
+      "Ever wondered how every vote is sealed, counted, and verified? Let's dive into the cutting-edge technology behind national election systems."
+    ],
+    "talkingPoints": [
+      "Neighborhood polling booths use privacy-shielded voting stations and biometric voter-roll verification to prevent voter intimidation and ensure accurate identification of eligible voters.",
+      "Tamper-evident electronic ballot units and VVPAT paper trails provide an auditable record of every vote, ensuring the integrity of the electoral process.",
+      "Independent party polling agents conduct random booth sample slips audits to detect any discrepancies or irregularities in the voting process, ensuring transparency and accountability.",
+      "District counting hubs use encrypted technology to aggregate constituency tallies into live national results by evening, providing voters with near real-time updates on the election outcome."
+    ],
+    "targetKeywords": [
+      "national election systems",
+      "vote counting technology",
+      "electoral transparency",
+      "voting system security",
+      "electoral integrity",
+      "voting machine audits"
+    ]
+  },
+  "script": {
+    "title": "Unlocking the Secrets of National Election Systems",
+    "hook": "Imagine counting 100 million votes in just 12 hours... How do national election systems achieve this feat?",
+    "script": "Neighborhood polling booths use privacy-shielded voting stations and biometric voter-roll verification to prevent voter intimidation and ensure accurate identification of eligible voters. Tamper-evident electronic ballot units and VVPAT paper trails provide an auditable record of every vote, ensuring the integrity of the electoral process. Independent party polling agents conduct random booth sample slips audits to detect any discrepancies or irregularities in the voting process. District counting hubs use encrypted technology to aggregate constituency tallies into live national results by evening, providing voters with near real-time updates on the election outcome. Every vote is sealed, counted, and verified with the utmost care, ensuring the integrity of our democratic process.",
+    "description": "Discover how cutting-edge technology and innovative processes enable efficient, secure, and transparent vote counting. Watch now and learn more!",
+    "hashtags": [
+      "#NationalElectionSystems",
+      "#VoteCountingTechnology",
+      "#ElectoralTransparency",
+      "#VotingSystemSecurity",
+      "#ElectoralIntegrity",
+      "#VotingMachineAudits"
+    ],
+    "estimatedDuration": 55,
+    "storyboard": [
+      {
+        "beatSummary": "A bustling neighborhood polling booth",
+        "action": "walking_across",
+        "position": "center",
+        "propType": "parallel_grid",
+        "propTitle": "Polling Booth Layout",
+        "propMetrics": [
+          "capacity: 1,200 voters",
+          "security features: biometric"
+        ]
+      },
+      {
+        "beatSummary": "A voting station with a VVPAT paper trail",
+        "action": "presenting_board",
+        "position": "right",
+        "propType": "comparison_bars",
+        "propTitle": "VVPAT Paper Trail",
+        "propMetrics": [
+          "audit trail: tamper-evident"
+        ]
+      },
+      {
+        "beatSummary": "A district counting hub with encrypted technology",
+        "action": "directing_swarm",
+        "position": "traverse",
+        "propType": "growth_chart",
+        "propTitle": "District Counting Hub",
+        "propMetrics": [
+          "real-time updates: constitue"
+        ]
+      },
+      {
+        "beatSummary": "A group of independent party polling agents conducting audits",
+        "action": "juggling_tasks",
+        "position": "left",
+        "propType": "speed_gauge",
+        "propTitle": "Polling Agent Audits",
+        "propMetrics": [
+          "random sample slips"
+        ]
+      },
+      {
+        "beatSummary": "A steel strongroom with 24/7 CCTV surveillance",
+        "action": "examining_lens",
+        "position": "center",
+        "propType": "blueprint_structure",
+        "propTitle": "Voting Machine Security",
+        "propMetrics": [
+          "steel strongrooms: tamper-pr"
+        ]
+      }
+    ],
+    "voiceoverScript": "Neighborhood polling booths use privacy-shielded voting stations and biometric voter-roll verification to prevent voter intimidation and ensure accurate identification of eligible voters. Tamper-evident electronic ballot units and VVPAT paper trails provide an auditable record of every vote, ensuring the integrity of the electoral process. Independent party polling agents conduct random booth sample slips audits to detect any discrepancies or irregularities in the voting process. District counting hubs use encrypted technology to aggregate constituency tallies into live national results by evening, providing voters with near real-time updates on the election outcome. Every vote is sealed, counted, and verified with the utmost care, ensuring the integrity of our democratic process.",
+    "caption": "Discover how cutting-edge technology and innovative processes enable efficient, secure, and transparent vote counting. Watch now and learn more!"
+  }
+}

@@ -74,6 +74,9 @@ export function ContentLibraryView({ workspaceId }: { workspaceId: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedRevId, setSelectedRevId] = useState<string | null>(null);
   const [approvalFilter, setApprovalFilter] = useState<string>("ALL");
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
@@ -93,11 +96,19 @@ export function ContentLibraryView({ workspaceId }: { workspaceId: string }) {
   const loadAssets = useCallback(async () => {
     setLoading(true);
     try {
-      const query = approvalFilter !== "ALL" ? "?approvalStatus=" + approvalFilter : "";
-      const res = await apiFetch<{ assets: ContentAssetDTO[] }>(
-        "/workspaces/" + workspaceId + "/assets" + query
-      );
+      const params = new URLSearchParams({ page: String(page), limit: "10" });
+      if (approvalFilter !== "ALL") params.set("approvalStatus", approvalFilter);
+      const res = await apiFetch<{
+        assets: ContentAssetDTO[];
+        pagination?: { page: number; limit: number; total: number; totalPages: number };
+      }>("/workspaces/" + workspaceId + "/assets?" + params.toString());
       setAssets(res.assets);
+      if (res.pagination) {
+        setTotalPages(res.pagination.totalPages);
+        setTotalCount(res.pagination.total);
+      } else {
+        setTotalCount(res.assets.length);
+      }
       if (res.assets.length > 0) {
         setSelectedId((prev) =>
           prev && res.assets.some((a) => a.id === prev) ? prev : res.assets[0].id
@@ -108,7 +119,7 @@ export function ContentLibraryView({ workspaceId }: { workspaceId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, approvalFilter]);
+  }, [workspaceId, approvalFilter, page]);
 
   useEffect(() => {
     loadAssets();
@@ -280,6 +291,30 @@ export function ContentLibraryView({ workspaceId }: { workspaceId: string }) {
               )}
             </button>
           ))}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-zinc-800/80 text-xs text-zinc-400">
+              <button
+                type="button"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 disabled:opacity-40 text-zinc-200 font-medium"
+              >
+                Prev
+              </button>
+              <span>
+                Page <strong className="text-zinc-200">{page}</strong> of{" "}
+                <strong className="text-zinc-200">{totalPages}</strong> ({totalCount})
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 disabled:opacity-40 text-zinc-200 font-medium"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

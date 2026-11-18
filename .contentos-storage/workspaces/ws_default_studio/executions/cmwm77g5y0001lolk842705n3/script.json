@@ -1,0 +1,101 @@
+{
+  "title": "Infomania: The Amazing Technology Behind Fresh Strawberry Logistics",
+  "revisionNumber": 1,
+  "researchBrief": {
+    "angle": "From Harvest to Shelf: Uncovering the Secrets Behind Fresh Strawberry Logistics",
+    "topic": "The Perilous Journey of Fresh Strawberries",
+    "hookIdeas": [
+      "Imagine biting into a juicy, succulent strawberry, only to discover it's been sitting on a truck for 3,000 miles... How do they do it?",
+      "The Great Strawberry Escape: Can Fresh Fruit Survive the Long Haul?",
+      "Strawberries on Steroids: The Amazing Technology Behind Fresh Fruit Transportation"
+    ],
+    "talkingPoints": [
+      "Forced-air pre-cooling is crucial to halt cellular respiration and prevent spoilage. Within 90 minutes of harvest, berry core temperatures must drop to 33°F to ensure safe transportation.",
+      "Modified-atmosphere pallet liners play a vital role in maintaining optimal oxygen and carbon dioxide levels in refrigerated reefers, extending the shelf life of fresh strawberries.",
+      "Real-time IoT temperature loggers enable real-time monitoring, preventing costly cargo rejections at customs. In 2022, a single incident cost a company $200,000!",
+      "Automated warehouse sorting is key to getting perishable fruit onto retail shelves in under 72 hours. This streamlined process reduces waste and increases customer satisfaction."
+    ],
+    "targetKeywords": [
+      "fresh strawberry logistics",
+      "forced-air pre-cooling",
+      "modified-atmosphere pallet liners",
+      "IoT temperature loggers",
+      "automated warehouse sorting",
+      "cold chain management",
+      "supply chain optimization"
+    ]
+  },
+  "script": {
+    "title": "Infomania: The Amazing Technology Behind Fresh Strawberry Logistics",
+    "hook": "Imagine biting into a juicy, succulent strawberry, only to discover it's been sitting on a truck for 3,000 miles...",
+    "script": "Forced-air pre-cooling is crucial to halt cellular respiration and prevent spoilage. Within 90 minutes of harvest, berry core temperatures must drop to 33°F to ensure safe transportation. Modified-atmosphere pallet liners play a vital role in maintaining optimal oxygen and carbon dioxide levels in refrigerated reefers, extending the shelf life of fresh strawberries. Real-time IoT temperature loggers enable real-time monitoring, preventing costly cargo rejections at customs. In 2022, a single incident cost a company $200,000! Automated warehouse sorting is key to getting perishable fruit onto retail shelves in under 72 hours. This streamlined process reduces waste and increases customer satisfaction.",
+    "description": "Discover the secrets behind fresh strawberry logistics and how technology is revolutionizing the supply chain! #FreshStrawberryLogistics #FoodTechnology #SupplyChainOptimization #IoT #FreshProduce #Logistics",
+    "hashtags": [
+      "#FreshStrawberryLogistics",
+      "#FoodTechnology",
+      "#SupplyChainOptimization",
+      "#IoT",
+      "#FreshProduce",
+      "#Logistics"
+    ],
+    "estimatedDuration": 55,
+    "storyboard": [
+      {
+        "beatSummary": "Introduction to the Problem",
+        "action": "thinking",
+        "position": "left",
+        "propType": "growth_chart",
+        "propTitle": "The Perilous Journey of Fresh Strawb",
+        "propMetrics": [
+          "3,000 miles",
+          "Spoilage Risk"
+        ]
+      },
+      {
+        "beatSummary": "Forced-Air Pre-Cooling Solution",
+        "action": "presenting_board",
+        "position": "center",
+        "propType": "parallel_grid",
+        "propTitle": "Temperature Control",
+        "propMetrics": [
+          "33°F",
+          "Within 90 minutes of harvest"
+        ]
+      },
+      {
+        "beatSummary": "Modified-Atmosphere Pallet Liners",
+        "action": "directing_swarm",
+        "position": "right",
+        "propType": "blueprint_structure",
+        "propTitle": "Optimizing Oxygen and Carbon Dioxide",
+        "propMetrics": [
+          "Extended Shelf Life",
+          "Reduced Spoilage"
+        ]
+      },
+      {
+        "beatSummary": "Real-Time IoT Temperature Loggers",
+        "action": "examining_lens",
+        "position": "traverse",
+        "propType": "magnifying_lens",
+        "propTitle": "Real-Time Monitoring",
+        "propMetrics": [
+          "Prevented $200,000 Cargo Rej"
+        ]
+      },
+      {
+        "beatSummary": "Automated Warehouse Sorting",
+        "action": "celebrating",
+        "position": "left",
+        "propType": "trophy_badge",
+        "propTitle": "Reducing Waste and Increasing Custom",
+        "propMetrics": [
+          "Under 72 hours",
+          "Increased Efficiency"
+        ]
+      }
+    ],
+    "voiceoverScript": "Forced-air pre-cooling is crucial to halt cellular respiration and prevent spoilage. Within 90 minutes of harvest, berry core temperatures must drop to 33°F to ensure safe transportation. Modified-atmosphere pallet liners play a vital role in maintaining optimal oxygen and carbon dioxide levels in refrigerated reefers, extending the shelf life of fresh strawberries. Real-time IoT temperature loggers enable real-time monitoring, preventing costly cargo rejections at customs. In 2022, a single incident cost a company $200,000! Automated warehouse sorting is key to getting perishable fruit onto retail shelves in under 72 hours. This streamlined process reduces waste and increases customer satisfaction.",
+    "caption": "Discover the secrets behind fresh strawberry logistics and how technology is revolutionizing the supply chain! #FreshStrawberryLogistics #FoodTechnology #SupplyChainOptimization #IoT #FreshProduce #Logistics"
+  }
+}
